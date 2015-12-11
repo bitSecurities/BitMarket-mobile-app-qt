@@ -1,0 +1,9 @@
+[submodule "curl"]
+	path = curl
+	url = https://github.com/bagder/curl
+[submodule "json-c"]
+	path = json-c
+	url = https://github.com/json-c/json-c
+[submodule "openssl"]
+	path = openssl
+	url = https://github.com/openssl/openssl
