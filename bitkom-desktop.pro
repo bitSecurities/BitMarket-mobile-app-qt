@@ -20,6 +20,8 @@ SOURCES += main.cpp \
 
 TEMPLATE = app
 
+DEFINES+= DESKTOP
+
 QT += quick qml multimedia widgets concurrent
 
 INCLUDES+=./include
@@ -27,6 +29,7 @@ INCLUDES+=./include
 CONFIG+= c++11
 CONFIG+= debug
 CONFIG-= release
+CONFIG += object_parallel_to_source
 
 LIBS+= -lssl -lcrypto -lcurl -ljson
 

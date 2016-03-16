@@ -33,10 +33,16 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QQmlApplicationEngine engine;
-    QString models[]={"modelbid","modelask","modelmarkets","modelexchanges","modelorders","modelbalance","modellast","modelmenu","modelleverage","modelpositions","modelswaps","modelorder","modelhistory","modelordertype"};
+    QString models[]={"modelbid","modelask","modelmarkets","modelexchanges","modelorders","modelbalance","modellast","modelmenu","modelleverage","modelpositions","modelswaps","modelorder","modelhistory","modelordertype","modeldepositcurrencies","modelwithdrawalaccounts","modeltimeframes"};
 
+#ifndef IPHONE
     setlocale(LC_NUMERIC,"en_US.UTF-8");
+#else
     QZXing::registerQMLTypes();
+#endif
+#ifdef DESKTOP
+    QZXing::registerQMLTypes();
+#endif
     base=new BaseData();
     for(int i=0;i<MAXMODELS;i++) {
         base->model[i]=new Table(base,i);

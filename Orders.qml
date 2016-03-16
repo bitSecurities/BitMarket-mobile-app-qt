@@ -47,6 +47,13 @@ Frame {
         refresh()
     }
 
+    onClear:
+    {
+        loginField.visible=!base.isLogged()
+        ordersFrame.visible=base.isLogged()
+        refresh()
+    }
+
     MessageDialog {
         id: cancelConfirmation
         title: base.trans(25)
@@ -83,8 +90,7 @@ Frame {
 
     Login {
         id: loginField
-        x: Math.round(370*base.scalex())
-        y: Math.round(600*base.scaley())
+        img.visible: true
         button.onClicked: {
             pass=loginField.text
             login()

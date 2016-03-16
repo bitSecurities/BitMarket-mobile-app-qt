@@ -25,8 +25,6 @@ import QtQuick.Dialogs 1.1
 import QtQuick.Layouts 1.1
 
 Frame {
-    y: Math.round(135*base.scaley())
-
     property double scroll
     property double flick
     property var currentpos
@@ -159,16 +157,44 @@ Frame {
         }
     }
 
-    Text
+    Item
     {
         id: info
-        x:Math.round(20*base.scalex())
-        y:Math.round(800*base.scaley())
-        width: Math.round(base.getWidth()-40*base.scalex())
-        text: base.trans(84)
-        font.pixelSize: Math.round(40*base.scalex())
-        horizontalAlignment: Text.AlignHCenter
         visible: false
+
+        Rectangle
+        {
+            id: background
+
+            width: base.getWidth()
+            height: base.getHeight()
+            color: "#41bb19"
+        }
+
+        Image
+        {
+            id: img
+
+            x: Math.round(112*base.scalex())
+            y: Math.round(500*base.scaley())
+            z: 11
+            source: (ex.name==="Bitmarket")?"qrc:///images/bitmarket_login.png":"qrc:///images/bitmaszyna_login.png"
+            width: Math.round(831*base.scalex())
+            height: Math.round(816*base.scaley())
+        }
+
+        MText
+        {
+            x:Math.round(20*base.scalex())
+            y:Math.round(1400*base.scaley())
+            width: Math.round(base.getWidth()-40*base.scalex())
+            text: base.trans(84)
+            font.pixelSize: Math.round(40*base.scalex())
+            horizontalAlignment: Text.AlignHCenter
+            bcolor: "#41bb1a"
+            tcolor: "#ffffff"
+            readOnly: true
+        }
     }
 
     function makeLogin()
@@ -187,8 +213,7 @@ Frame {
 
     Login {
         id: loginField
-        x: Math.round(370*base.scalex())
-        y: Math.round(300*base.scaley())
+        img.visible: true
         button.onClicked: {
             pass=loginField.text
             login()
@@ -199,6 +224,7 @@ Frame {
     {
         id : leverageFrame
         visible: base.isLogged()
+        y: Math.round(135*base.scaley())
 
         Rectangle
         {
@@ -275,7 +301,13 @@ Frame {
                 width: Math.round(445*base.scalex())
                 text: base.trans(14)
                 font.pixelSize: Math.round(35*base.scalex())
-                onFocusChanged: masked(this,base.trans(14))
+                onFocusChanged: {
+                    masked(this,base.trans(14))
+                }
+                onTextChanged:
+                {
+                    if (text>Math.max(base.getLeverageData(0),modelbalance.get(2)['value'])) text=Math.max(base.getLeverageData(0),modelbalance.get(2)['value']).toFixed(8);
+                }
             }
 
             MButton {
@@ -285,7 +317,12 @@ Frame {
                 text: base.trans(53)
                 width : Math.round(300*base.scalex())
                 onClicked: {
-                    base.marginBalanceAdd(marginFunds.text)
+                    if (marginFunds.text>modelbalance.get(2)['value']) marginFunds.text=modelbalance.get(2)['value'].toFixed(8);
+                    if (!base.marginBalanceAdd(marginFunds.text))
+                    {
+                        errorDialog.text=base.getLastError()
+                        errorDialog.visible=true
+                    }
                     refresh()
                 }
             }
@@ -296,7 +333,12 @@ Frame {
                 width : Math.round(300*base.scalex())
                 text: base.trans(54)
                 onClicked: {
-                    base.marginBalanceRemove(marginFunds.text)
+                    if (marginFunds.text>base.getLeverageData(0)) marginFunds.text=base.getLeverageData(0).toFixed(8);
+                    if (!base.marginBalanceRemove(marginFunds.text))
+                    {
+                        errorDialog.text=base.getLastError()
+                        errorDialog.visible=true
+                    }
                     refresh()
                 }
             }
@@ -339,6 +381,7 @@ Frame {
                 }
                 RadioButton {
                     id: buy
+                    z: 5
                     anchors.fill: parent
                     anchors.leftMargin: Math.round(10*base.scaley())
                     checked: true
@@ -365,6 +408,7 @@ Frame {
                 }
                 RadioButton {
                     id: sell
+                    z: 5
                     anchors.fill: parent
                     anchors.leftMargin: Math.round(10*base.scalex())
                     exclusiveGroup: ttype

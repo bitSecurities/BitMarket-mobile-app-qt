@@ -55,16 +55,31 @@ Frame {
         base.getdepth()
     }
 
+    /*Text
+    {
+        id: debug
+        x: 300*base.scalex()
+        y: 300*base.scaley()
+        z: 15
+        text: "aa"
+        font.pixelSize: 80*base.scalex()
+        color: "#ff0000"
+    }*/
+
     onNewdata: {
         newpos=false
         bidScroll=bidtable.__verticalScrollBar.value
         askFlick=asktable.flickableItem.verticalVelocity
         bidFlick=bidtable.flickableItem.verticalVelocity
         if (asktable.__verticalScrollBar.value>asktable.__verticalScrollBar.maximumValue-200) newpos=true
+        //        debug.text=asktable.__verticalScrollBar.value+" "+asktable.__verticalScrollBar.maximumValue+" "+newpos
         askScroll=asktable.__verticalScrollBar.value
         base.updateTables()
         bidtable.__verticalScrollBar.value=bidScroll
-        if ((newpos)&&(reverse)) asktable.positionViewAtRow(asktable.rowCount-1, ListView.Contain)
+        if ((newpos)&&(reverse)) {
+            asktable.__verticalScrollBar.value=asktable.__verticalScrollBar.maximumValue
+            asktable.positionViewAtRow(asktable.rowCount-1, ListView.Contain)
+        }
         else asktable.__verticalScrollBar.value=askScroll
         asktable.flickableItem.cancelFlick()
         if (askFlick!=0) asktable.flickableItem.flick(0,-askFlick)
@@ -153,7 +168,7 @@ Frame {
         {
             if (side)
             {
-                if ((order.price.text>0)&&(order.amount.text*order.price.text>modelbalance.get(base.getCurrId(2))['value']-0.01))
+                if ((order.price.text>0)&&(order.amount.text*order.price.text>modelbalance.get(base.getCurrId(2))['value']-0.01)&&(modelbalance.get(base.getCurrId(2))['value']-0.01>0))
                 {
                     order.amount.text=((modelbalance.get(base.getCurrId(2))['value']-0.01)/order.price.text).toFixed(8)
                 }
@@ -328,8 +343,10 @@ Frame {
                     x: Math.round(830*base.scalex())
                     y: Math.round(10*base.scaley())
                     text: base.trans(12)
-                    onClicked: {                        
-                        if ((base.isLogged())&&(price.text>0)&&(amount.text>0))
+                    onClicked: {
+                        Qt.inputMethod.hide()
+                        //if ((base.isLogged())&&(price.text>0)&&(amount.text>0))
+                        if (base.isLogged())
                         {
                             if ((base.getFirstCurrency()==="BTC")&&(amount.text<0.005))
                             {

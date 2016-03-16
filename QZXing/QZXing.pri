@@ -185,38 +185,38 @@ SOURCES += $$PWD/CameraImageWrapper.cpp \
     $$PWD/zxing/zxing/multi/qrcode/QRCodeMultiReader.cpp \
     $$PWD/zxing/zxing/multi/qrcode/detector/MultiFinderPatternFinder.cpp \
     $$PWD/zxing/zxing/multi/qrcode/detector/MultiDetector.cpp \
-    $$PWD/zxing/zxing/aztec/decoder/AztecDecoder.cpp \
-    $$PWD/zxing/zxing/aztec/detector/AztecDetector.cpp \
-    $$PWD/zxing/zxing/datamatrix/DataMatrixVersion.cpp \
-    $$PWD/zxing/zxing/datamatrix/decoder/DataMatrixDecoder.cpp \
-    $$PWD/zxing/zxing/datamatrix/decoder/DataMatrixBitMatrixParser.cpp \
-    $$PWD/zxing/zxing/datamatrix/decoder/DataMatrixDataBlock.cpp \
-    $$PWD/zxing/zxing/datamatrix/decoder/DataMatrixDecodedBitStreamParser.cpp \
-    $$PWD/zxing/zxing/datamatrix/detector/DataMatrixCornerPoint.cpp \
-    $$PWD/zxing/zxing/datamatrix/detector/DataMatrixDetector.cpp \
-    $$PWD/zxing/zxing/datamatrix/detector/DataMatrixDetectorException.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRBitMatrixParser.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRDataBlock.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRDataMask.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRDecodedBitStreamParser.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRDecoder.cpp \
-    $$PWD/zxing/zxing/qrcode/decoder/QRMode.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRAlignmentPattern.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRAlignmentPatternFinder.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRDetector.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRFinderPattern.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRFinderPatternFinder.cpp \
-    $$PWD/zxing/zxing/qrcode/detector/QRFinderPatternInfo.cpp \
-    $$PWD/zxing/zxing/qrcode/QRVersion.cpp \
-    $$PWD/zxing/zxing/qrcode/QRFormatInformation.cpp \
-    $$PWD/zxing/zxing/qrcode/QRErrorCorrectionLevel.cpp \
+    $$PWD/zxing/zxing/aztec/decoder/Decoder.cpp \
+    $$PWD/zxing/zxing/aztec/detector/Detector.cpp \
+    $$PWD/zxing/zxing/datamatrix/Version.cpp \
+    $$PWD/zxing/zxing/datamatrix/decoder/Decoder.cpp \
+    $$PWD/zxing/zxing/datamatrix/decoder/BitMatrixParser.cpp \
+    $$PWD/zxing/zxing/datamatrix/decoder/DataBlock.cpp \
+    $$PWD/zxing/zxing/datamatrix/decoder/DecodedBitStreamParser.cpp \
+    $$PWD/zxing/zxing/datamatrix/detector/CornerPoint.cpp \
+    $$PWD/zxing/zxing/datamatrix/detector/Detector.cpp \
+    $$PWD/zxing/zxing/datamatrix/detector/DetectorException.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/BitMatrixParser.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/DataBlock.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/DataMask.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/DecodedBitStreamParser.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/Decoder.cpp \
+    $$PWD/zxing/zxing/qrcode/decoder/Mode.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/AlignmentPattern.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/AlignmentPatternFinder.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/Detector.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/FinderPattern.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/FinderPatternFinder.cpp \
+    $$PWD/zxing/zxing/qrcode/detector/FinderPatternInfo.cpp \
+    $$PWD/zxing/zxing/qrcode/Version.cpp \
+    $$PWD/zxing/zxing/qrcode/FormatInformation.cpp \
+    $$PWD/zxing/zxing/qrcode/ErrorCorrectionLevel.cpp \
     $$PWD/zxing/zxing/pdf417/decoder/ec/ErrorCorrection.cpp \
     $$PWD/zxing/zxing/pdf417/decoder/ec/ModulusGF.cpp \
     $$PWD/zxing/zxing/pdf417/decoder/ec/ModulusPoly.cpp \
-    $$PWD/zxing/zxing/pdf417/decoder/PDF417BitMatrixParser.cpp \
-    $$PWD/zxing/zxing/pdf417/decoder/PDF417DecodedBitStreamParser.cpp \
-    $$PWD/zxing/zxing/pdf417/decoder/PDF417Decoder.cpp \
-    $$PWD/zxing/zxing/pdf417/detector/PDF417Detector.cpp \
+    $$PWD/zxing/zxing/pdf417/decoder/BitMatrixParser.cpp \
+    $$PWD/zxing/zxing/pdf417/decoder/DecodedBitStreamParser.cpp \
+    $$PWD/zxing/zxing/pdf417/decoder/Decoder.cpp \
+    $$PWD/zxing/zxing/pdf417/detector/Detector.cpp \
     $$PWD/zxing/zxing/pdf417/detector/LinesSampler.cpp \
     $$PWD/zxing/zxing/pdf417/PDF417Reader.cpp \
     $$PWD/zxing/bigint/BigUnsignedInABase.cc \

@@ -33,7 +33,12 @@ Table::Table(BaseData *base,int type)
 
 QHash<int, QByteArray> Table::roleNames() const
 {
-    if ((type==MARKETS)||(type==EXCHANGES)||(type==MENU)||(type==LEVERAGE)||(type==ORDER)||(type==ORDERTYPE))
+    if ((type==MARKETS)||(type==EXCHANGES)||(type==MENU)||(type==LEVERAGE)||(type==ORDER)||(type==ORDERTYPE)||(type==TIMEFRAMES)||(type==WITHDRAWALACCOUNTS))
+    {
+        QHash<int, QByteArray> roles;
+        roles[Price] = "name";
+        return roles;
+    }else if (type==DEPOSITCURRENCIES)
     {
         QHash<int, QByteArray> roles;
         roles[Price] = "name";
@@ -117,12 +122,21 @@ QVariant Table::get(int row)
     }else if (type==LEVERAGE)
     {
         return(QVariant::fromValue(new ListObject((base->translations[36]+" "+to_string1(base->levs[row])))));
-    }else if (type==BALANCE)
+    }else if (type==DEPOSITCURRENCIES)
     {
         QVariantMap map;
 
         map["name"]=base->currentExchange->currencies[row].name.c_str();
-        map["value"]=formatCurr(base->currentExchange->balance.balance[base->currentExchange->currencies[row].type],base->currentExchange->currencies[row].type);
+        return(map);
+    }else if (type==BALANCE)
+    {
+        QVariantMap map;
+        vector<Currency>::iterator it;
+
+        for(it=base->currentExchange->currencies.begin();it!=base->currentExchange->currencies.end();++it) if (row==it->type) break;
+        if (it==base->currentExchange->currencies.end()) return(QVariant());
+        map["name"]=it->name.c_str();
+        map["value"]=formatCurr(base->currentExchange->balance.balance[it->type],it->type);
         return(map);
     }else if (type==EXCHANGES)
     {
@@ -147,6 +161,14 @@ QVariant Table::get(int row)
     }else if (type==OPENPOSITIONS)
     {
         return(data(index(row,0),Opened));
+    }else if (type==WITHDRAWALACCOUNTS)
+    {
+        if ((row<0)||(row>=rowCount())||(rowCount()==0)) return(QVariant::fromValue(new ListObject(base->trans(118))));
+        return(QVariant::fromValue(new ListObject(base->currentExchange->withdrawalaccounts[base->currentExchange->withdrawalcurrency][row].name.c_str()+QString(" - ")+base->currentExchange->withdrawalaccounts[base->currentExchange->withdrawalcurrency][row].account.c_str())));
+    }else if (type==TIMEFRAMES)
+    {
+        if (base->currentExchange->id==BITMASZYNA) return(QVariant::fromValue(new ListObject(base->timeframes_bitmaszyna[row])));
+        else return(QVariant::fromValue(new ListObject(base->timeframes[row])));
     }
     return(QVariant());
 }
@@ -222,6 +244,21 @@ QVariant Table::data(const QModelIndex &index, int role) const
     }else if (type==ORDERS)
     {
         ret=base->currentExchange->orders[index.row()];
+    }else if (type==DEPOSITCURRENCIES)
+    {
+        Currency ret;
+        int i,j;
+
+        j=0;
+        for (i=0;i<index.row()+1;i++)
+        {
+            while(!base->currentExchange->currencies[j].deposit) j++;
+            ret=base->currentExchange->currencies[j];
+            j++;
+        }
+        if ((role==Curr)||(role==Price)){
+            return(ret.name.c_str());
+        }
     }else if (type==BALANCE)
     {
         Currency ret;
@@ -273,6 +310,14 @@ QVariant Table::data(const QModelIndex &index, int role) const
         else if (role==Amount) return(to_string2(ret.amount));
         else if (role==Type) return(ret.type.c_str());
         else return("");
+    }else if (type==WITHDRAWALACCOUNTS)
+    {
+        if ((index.row()<0)||(index.row()>=rowCount())||(rowCount()==0)) return(QVariant::fromValue(new ListObject(base->trans(118))));
+        return(base->currentExchange->withdrawalaccounts[base->currentExchange->withdrawalcurrency][index.row()].name.c_str()+QString(" - ")+base->currentExchange->withdrawalaccounts[base->currentExchange->withdrawalcurrency][index.row()].account.c_str());
+    }else if (type==TIMEFRAMES)
+    {
+        if (base->currentExchange->id==BITMASZYNA) return(base->timeframes_bitmaszyna[index.row()]);
+        else return(base->timeframes[index.row()]);
     }
     if (role==Price) return(ret.getPrice());
     else if (role==Amount) return(ret.getAmount());
@@ -318,6 +363,17 @@ int Table::rowCount(const QModelIndex &) const
     else if (type==EXCHANGES) return(base->exchanges.size());
     else if (type==ORDERS) return(base->currentExchange->orders.size());
     else if (type==BALANCE) return(base->currentExchange->currencies.size());
+    else if (type==DEPOSITCURRENCIES) {
+        unsigned int i,j;
+
+        if (!base->isLogged()) return(0);
+        j=0;
+        for (i=0;i<base->currentExchange->currencies.size();i++)
+        {
+            if(base->currentExchange->currencies[i].deposit) j++;
+        }
+        return(j);
+    }
     else if (type==ORDERTYPE) return(base->currentExchange->currencies.size()+1);
     else if (type==LASTTRADES) {
         if (base->limitRange==-1) return(base->currentExchange->trades.size());
@@ -328,6 +384,17 @@ int Table::rowCount(const QModelIndex &) const
     else if (type==OPENSWAPS) return(base->currentExchange->swaps.size());
     else if (type==ORDER) return(2);
     else if (type==HISTORY) return(base->currentExchange->historyTable.size());
+    else if (type==WITHDRAWALACCOUNTS) {
+        if (!base->isLogged()) return(0);
+        else {
+            if ((base->currentExchange->withdrawalcurrency<0)||(base->currentExchange->withdrawalcurrency>=MAXCURR)) return(0);
+            return(base->currentExchange->withdrawalaccounts[base->currentExchange->withdrawalcurrency].size());
+        }
+    }
+    else if (type==TIMEFRAMES) {
+        if (base->currentExchange->id==BITMASZYNA) return(base->timeframes_bitmaszyna.size());
+        else return(base->timeframes.size());
+    }
     else return(0);
 }
 

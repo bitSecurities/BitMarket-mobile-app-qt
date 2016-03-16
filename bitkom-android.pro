@@ -28,7 +28,7 @@ INCLUDEPATH += include
 
 ANDROID_EXTRA_LIBS += libs/libcurl.so libs/libjson.so
 
-include(QZXing/QZXing.pri)
+#include(QZXing/QZXing.pri)
 
 RESOURCES += res.qrc
 

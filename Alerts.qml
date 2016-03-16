@@ -41,6 +41,7 @@ Frame {
     Item
     {
         id : alertsFrame
+        z: 10
 
         CheckBox {
             id: alertActive
@@ -83,6 +84,7 @@ Frame {
             id: bidbelow
             x:Math.round(20*base.scalex())
             y:Math.round(800*base.scaley())
+            z:1
             width: Math.round(1000*base.scalex())
             text: base.getBidBelow()
             horizontalAlignment: Text.AlignLeft

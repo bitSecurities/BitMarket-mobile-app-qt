@@ -27,12 +27,82 @@ Item{
     property alias displaytext : loginButton.text
     property alias password : password
     property alias outer : outer.visible
+    property alias img : img
     visible: !base.isLogged()
+
+    Rectangle
+    {
+        id: background
+
+        width: base.getWidth()
+        height: base.getHeight()
+        color: "#41bb19"
+        visible: img.visible
+    }
+
+    Image
+    {
+        id: img
+
+        x: Math.round(112*base.scalex())
+        y: Math.round(500*base.scaley())
+        z: 11
+        source: (ex.name==="Bitmarket")?"qrc:///images/bitmarket_login.png":"qrc:///images/bitmaszyna_login.png"
+        width: Math.round(831*base.scalex())
+        height: Math.round(816*base.scaley())
+        visible: false
+    }
+
+    MText {
+        x: 0
+        y: Math.round(300*base.scaley())
+        width: base.getWidth()
+        horizontalAlignment: Text.AlignHCenter
+        text: base.trans(123)
+        bcolor: "#41bb1a"
+        tcolor: "#ffffff"
+        readOnly: true
+        font.pixelSize: Math.round(50*base.scalex())
+        visible: img.visible
+    }
+
+    MText {
+        x: 0
+        y: Math.round(1400*base.scaley())
+        width: base.getWidth()
+        horizontalAlignment: Text.AlignHCenter
+        text: base.trans(124)
+        bcolor: "#41bb1a"
+        tcolor: "#ffffff"
+        readOnly: true
+        font.pixelSize: Math.round(35*base.scalex())
+        visible: img.visible
+    }
 
     MButton {
         x: Math.round(50*base.scalex())
+        y:
+        {
+            if (img.visible) Math.round(1500*base.scalex())
+            else 0
+        }
         id: loginButton
         text: base.trans(9)
+        background:
+        {
+            if (img.visible) "#ffffff"
+            else "#41bb1a"
+        }
+        color:
+        {
+            if (img.visible) "#000000"
+            else "#ffffff"
+        }
+        width:
+        {
+            if (img.visible) Math.round(base.getWidth()-100*base.scalex())
+            else Math.round(240*base.scalex())
+        }
         Rectangle
         {
             id: outer

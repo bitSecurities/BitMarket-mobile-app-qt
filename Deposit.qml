@@ -36,6 +36,15 @@ Frame {
         refresh()
     }
 
+    onClear:
+    {
+        loginField.visible=!base.isLogged()
+        depositFrame.visible=base.isLogged()
+        currencies.view.currentIndex=0;
+        currencies.popup.ref()
+        refresh()
+    }
+
     function generateQR()
     {
         var add
@@ -43,7 +52,7 @@ Frame {
         add=""
         if (currencies.name==="BTC") add="bitcoin:"
         else if (currencies.name==="LTC") add="litecoin:"
-        if (add!=="") {
+        if ((add!=="")&&(base.getDeposit().indexOf("Error") !== 0)) {
             qrcode.visible=true
             qrcode.value=add+base.getDeposit()
         }
@@ -55,6 +64,8 @@ Frame {
         if (base.login(pass)) {
             loginField.visible=false
             depositFrame.visible=true
+            base.refreshCurrencies()
+            currencies.popup.ref()
             base.deposit(currencies.name)
             refresh()
         }else {
@@ -67,8 +78,7 @@ Frame {
 
     Login {
         id: loginField
-        x: Math.round(370*base.scalex())
-        y: Math.round(600*base.scaley())
+        img.visible: true
         button.onClicked: {
             pass=loginField.text
             login()
@@ -85,8 +95,8 @@ Frame {
             y: Math.round(250*base.scaley())
             z: 10
             id: currencies
-            model: modelbalance
-            view.currentIndex: 2
+            model: modeldepositcurrencies
+            view.currentIndex: (base.isLogged())?2:0
             onNameChanged: {
                 if (base.isLogged()) {
                     base.deposit(name)
@@ -103,7 +113,17 @@ Frame {
             y: Math.round(500*base.scaley())
             horizontalAlignment: Text.AlignLeft
             text: base.getDeposit()
+            wrapMode: Text.WordWrap
             font.pixelSize: Math.round(35*base.scalex())
+            MouseArea {
+                anchors.fill: parent
+                onClicked:
+                {
+                    if ((currencies.name==="BTC")||(currencies.name==="LTC")) messages.displayMessage(base.trans(127));
+                    else messages.displayMessage(base.trans(126));
+                    base.copyAccount();
+                }
+            }
         }
 
         QRCode {

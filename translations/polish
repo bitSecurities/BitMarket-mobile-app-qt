@@ -88,7 +88,7 @@ Odwrotnie
 zmienić transakcję
 Latarka
 Wyostrz
-Zewn. skaner
+Skaner
 Otwarte
 Historia
 Kupno
@@ -116,3 +116,13 @@ Błąd
 Minimalnie 0.005 BTC
 w
 Minimalnie 100 PLN
+Nie posiadasz zdefiniowanych kont wypłaty
+Głębokość
+Nieprawidłowy klucz API
+Więcej informacji
+Aplikacja umożliwia w bezpieczny sposób obsługę Twojego indywidualnego konta na giełdzie BitMarket. Aby to było możliwe, musisz pobrać ze strony WWW BitMarket (szczegóły poniżej) odpowiednie klucze dostępu (nie udostępniaj ich nikomu, po instalacji w tej aplikacji przestaną być widoczne dla osób postronnych). Następnie zainstaluj je jak wskazano poniżej.<br> Klucze do obsługi aplikacji zainstalujesz w następujący sposób:<br><br>1. [GENEROWANIE KLUCZY] logując się na stronę www.BitMarket.pl na swoim komputerze domowym przez przeglądarkę - w zakładce https://www.bitmarket.pl/apikeys.php - WYGENERUJ NOWY KLUCZ API - proszę zaznacz wszystkie opcje z checkboxów.<br><br>2. [WPISANIE KLUCZY W APLIKACJĘ] - po w/w wygenerowaniu kluczy w przeglądarce otworzy się jednorazowo okno z informacją o tych kluczach – powinieneś je przepisać do aplikacji mobilnej, lub ściągnąć je czytnikiem QR code zainstalowanym w tym telefonie - do naszej aplikacji.<br><br>3. Po zainstalowaniu w/w kluczy aplikacja będzie obsługiwała Twoje konto w BitMarket – życzymy zawsze najlepszych wyników!<br><br>Pozdrawiamy – Zespół BitMarket.
+Brak dostepu do tej sekcji.
+Aby go uzyskać musisz być zalogowany.
+Stop
+Numer konta skopiowany
+Adres skopiowany

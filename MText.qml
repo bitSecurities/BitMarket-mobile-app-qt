@@ -23,18 +23,23 @@ import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 
 TextField {
+    property string bcolor;
+    property string tcolor;
+
     id: text
     x: 0
     y: 0
+    bcolor: "#ffffff"
+    tcolor: "#000000"
     width: Math.round(240*base.scalex())
     height: Math.round(85*base.scaley())
     horizontalAlignment: Text.AlignRight
     font.pixelSize: Math.round(35*base.scalex())
     style: TextFieldStyle {
-        textColor: "#000000"
+        textColor: tcolor
         background: Rectangle {
             border.width: 0
-            color: "#ffffff"
+            color: bcolor
         }
     }
     Menu {
@@ -61,5 +66,11 @@ TextField {
         hoverEnabled: true
         onPressed: text.forceActiveFocus();
         onPressAndHold: myContextMenu.popup()
+    }
+    Keys.onEnterPressed: {
+        Qt.inputMethod.hide()
+    }
+    Keys.onReturnPressed: {
+        Qt.inputMethod.hide()
     }
 }

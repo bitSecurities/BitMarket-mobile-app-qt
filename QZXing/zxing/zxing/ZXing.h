@@ -42,25 +42,18 @@ typedef bool boolean;
 #include <float.h>
 
 namespace zxing {
-inline bool isnan_z(float v) {return _isnan(v) != 0;}
-inline bool isnan_z(double v) {return _isnan(v) != 0;}
+inline bool isnan(float v) {return _isnan(v) != 0;}
+inline bool isnan(double v) {return _isnan(v) != 0;}
 inline float nan() {return std::numeric_limits<float>::quiet_NaN();}
 }
 
 #else
 
-//#include <cmath>
-
-#include <math.h>
-
+#include <cmath>
 
 namespace zxing {
-inline bool isnan_z(float v) {
-    return isnan(v);
-}
-inline bool isnan_z(double v) {
-    return isnan(v);
-}
+inline bool isnan(float v) {return std::isnan(v);}
+inline bool isnan(double v) {return std::isnan(v);}
 inline float nan() {return std::numeric_limits<float>::quiet_NaN();}
 }
 

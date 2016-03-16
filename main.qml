@@ -35,6 +35,8 @@ ApplicationWindow {
     signal clear()
 
     property string pass
+    property string addr
+    property int idx
 
     function showError()
     {
@@ -65,16 +67,35 @@ ApplicationWindow {
         var i,j
 
         if (pageLoader.item===null) return
-        i=tag.search("BitmarketKey:")
-        j=tag.search(",")
-        if ((i<0)||(j<0)) return
-        pageLoader.item.fields.key.text=tag.substring(i+13,j)
-        i=tag.search("BitmarketSecret:")
-        j=tag.length
-        pageLoader.item.fields.secret.text=tag.substring(i+16,j)
-        base.setKey(pageLoader.item.fields.key.text)
-        base.setSecret(pageLoader.item.fields.secret.text)
-        base.savekeys()
+        if (base.getExId()===0)//BitMarket
+        {
+            i=tag.search("BitmarketKey:")
+            j=tag.search(",")
+            if ((i<0)||(j<0)) return
+            pageLoader.item.fields.key.text=tag.substring(i+13,j)
+            i=tag.search("BitmarketSecret:")
+            j=tag.length
+            pageLoader.item.fields.secret.text=tag.substring(i+16,j)
+            base.setKey(pageLoader.item.fields.key.text)
+            base.setSecret(pageLoader.item.fields.secret.text)
+            base.savekeys()
+            return(true)
+        }else if (base.getExId()===1)//Bitmaszyna
+        {
+            i=tag.search("BitmaszynaKey:")
+            j=tag.search(",")
+            if ((i<0)||(j<0)) return
+            pageLoader.item.fields.key.text=tag.substring(i+14,j)
+            i=tag.search("BitmaszynaSecret:")
+            j=tag.length
+            pageLoader.item.fields.secret.text=tag.substring(i+17,j)
+            base.setKey(pageLoader.item.fields.key.text)
+            base.setSecret(pageLoader.item.fields.secret.text)
+            base.savekeys()
+            handlerLoader("qrc:///Keys.qml")
+            return(true)
+        }
+        return(false)
     }
 
     function changeScreen(k)
@@ -85,7 +106,7 @@ ApplicationWindow {
         case 0:
             ex.visible=true
             markets.visible=true
-            //            pageLoader.source="qrc:///Leverage.qml"
+            //pageLoader.source="qrc:///Chart.qml"
             pageLoader.source="qrc:///Trade.qml"
             break
         case 1:
@@ -196,6 +217,10 @@ ApplicationWindow {
             }
         }
 
+        MoreDialog {
+            id: moreInfo
+        }
+
         MDialog {
             id: withdrawalConfirmation
             title: base.trans(20)
@@ -272,6 +297,7 @@ ApplicationWindow {
                 z: 15
                 button.width: Math.round(260*base.scalex())
                 outer: true
+                img.visible: false;
             }
 
             MainMenuItem
@@ -368,6 +394,17 @@ ApplicationWindow {
         }
 
         Component.onCompleted: {
+            idx=-1
+            addr=""
+            base.changeEx("Bitmarket")
+//            base.changeEx("Bitmaszyna")
+//            ex.name="Bitmaszyna"
+            base.checkAlerts()
+            if (pageLoader.item!=null) {
+                pageLoader.item.clear()
+                pageLoader.item.refresh()
+            }
+            loadUpdate.start()
             changeScreen(0)
         }
 
@@ -444,16 +481,18 @@ ApplicationWindow {
                     objectName: "newdata"
                     function refreshdata()
                     {
-                        pageLoader.item.newdata()
+                        if (pageLoader.item!=null) pageLoader.item.newdata()
                     }
                 }
-
+/*
                 Timer {
                     id: loadInitial
                     running: false
                     repeat: false
                     onTriggered: {
-                        base.changeEx("Bitmarket")
+                        //base.changeEx("Bitmarket")
+                        base.changeEx("Bitmaszyna")
+                        ex.name="Bitmaszyna"
                         base.checkAlerts()
                         if (pageLoader.item!=null) {
                             pageLoader.item.clear()
@@ -462,7 +501,7 @@ ApplicationWindow {
                         loadUpdate.start()
                     }
                 }
-
+*/
                 Timer {
                     id: loadUpdate
                     running: false
@@ -498,7 +537,7 @@ ApplicationWindow {
                                 pageLoader.item.refresh()
                             }
                         }else {
-                            loadInitial.start()
+                            //loadInitial.start()
                             first=false
                         }
                         if (name==="Bitmarket") image="qrc:///images/bitmarket.png"

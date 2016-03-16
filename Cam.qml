@@ -48,13 +48,14 @@ Frame {
         id: fields
         z: 10
 
-        action.text: "Stop"
+        action.text: base.trans(125)
         action.onClicked: handlerLoader("qrc:///Keys.qml")
-        actionExternal.text: base.trans(88)
-        actionExternal.onClicked: {
+        flash.text: base.trans(88)
+        flash.onClicked: {
             if (camera.flash.mode===Camera.FlashOff) camera.flash.mode=Camera.FlashVideoLight
             else camera.flash.mode=Camera.FlashOff
         }
+        flash.visible: true
     }
 
     MButton{
@@ -72,6 +73,7 @@ Frame {
         id: camera
         captureMode: Camera.CaptureStillImage
         onCameraStatusChanged: {
+            base.changeLocale()
             base.logError(camera.cameraStatus)
         }
         focus {
@@ -122,7 +124,7 @@ Frame {
         }
         onTagFound: {
             base.logError("tag: "+tag)
-            parse(tag)
+            if (parse(tag)) handlerLoader("qrc:///Keys.qml")
         }
         onDecodingFinished: {
             base.logError("Decoding finished " + (succeeded==true ? "successfully" :    "unsuccessfully") )

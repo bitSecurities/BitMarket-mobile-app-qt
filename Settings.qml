@@ -49,23 +49,26 @@ Frame {
         }
     }
 
-    Text
+    MText
     {
         id: langt
 
-        x: Math.round(200*base.scalex())
-        y: Math.round(400*base.scaley())
-        width: Math.round(200*base.scalex())
-        height: Math.round(85*base.scaley())
-        horizontalAlignment: Text.AlignRight
+        x: Math.round(50*base.scalex())
+        y: Math.round(200*base.scaley())
+        width: Math.round(base.getWidth()/2-60*base.scalex())
+        height: Math.round(125*base.scaley())
+        horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         text: base.trans(103)+":"
+        readOnly: true
         font.pixelSize: Math.round(35*base.scalex())
     }
 
     MListButtonN {
-        x: Math.round(420*base.scalex())
-        y: Math.round(400*base.scaley())
+        x: Math.round(base.getWidth()/2+10*base.scalex())
+        y: Math.round(200*base.scaley())
+        height: Math.round(125*base.scaley())
+        width: Math.round(base.getWidth()/2-60*base.scalex())
         id: languages
         model: languagesmodel
         view.currentIndex: base.currentlang()
@@ -89,28 +92,33 @@ Frame {
                 menu10.text=base.menu(menu10.k)
                 menu11.text=base.menu(menu11.k)
                 order.text=base.trans(85+order.view.currentIndex)
+                moreInfo.text=base.trans(122)
+                errorDialog.moreinfo=base.trans(121)
             }
         }
     }
 
-    Text
+    MText
     {
         id: lang2t
 
-        x: Math.round(200*base.scalex())
-        y: Math.round(600*base.scaley())
-        height: Math.round(85*base.scaley())
-        width: Math.round(200*base.scalex())
-        horizontalAlignment: Text.AlignRight
+        x: Math.round(50*base.scalex())
+        y: Math.round(350*base.scaley())
+        width: Math.round(base.getWidth()/2-60*base.scalex())
+        height: Math.round(125*base.scaley())
+        horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         text: base.trans(104)+":"
         font.pixelSize: Math.round(35*base.scalex())
+        readOnly: true
     }
 
     MListButtonN {
         id: order
-        x: Math.round(420*base.scalex())
-        y: Math.round(600*base.scaley())
+        x: Math.round(base.getWidth()/2+10*base.scalex())
+        y: Math.round(350*base.scaley())
+        height: Math.round(125*base.scaley())
+        width: Math.round(base.getWidth()/2-60*base.scalex())
         z: -1
         model: modelorder
         view.currentIndex: base.getReverse()
@@ -121,13 +129,16 @@ Frame {
 
     Item
     {
+        y: Math.round(600*base.scaley())
+
         id: encryptPassword
         visible: base.isLogged()
         MText {
             id: password
             x: Math.round(340*base.scalex())
-            y: Math.round(750*base.scaley())
+            y: Math.round(0*base.scaley())
             width: Math.round(400*base.scalex())
+            height: Math.round(125*base.scaley())
             text: base.trans(58)
             font.pixelSize: Math.round(35*base.scalex())
             onFocusChanged: maskedPassword(this,base.trans(58))
@@ -136,8 +147,9 @@ Frame {
         MText {
             id: confirmPassword
             x: Math.round(340*base.scalex())
-            y: Math.round(900*base.scaley())
+            y: Math.round(150*base.scaley())
             width: Math.round(400*base.scalex())
+            height: Math.round(125*base.scaley())
             text: base.trans(59)
             font.pixelSize: Math.round(35*base.scalex())
             onFocusChanged: maskedPassword(this,base.trans(59))
@@ -145,8 +157,9 @@ Frame {
 
         MButton {
             x:Math.round(340*base.scalex())
-            y:Math.round(1050*base.scaley())
+            y:Math.round(300*base.scaley())
             width: Math.round(400*base.scalex())
+            height: Math.round(125*base.scaley())
             text: base.trans(60)
             onClicked: {
                 if (password.text!=confirmPassword.text) {

@@ -34,6 +34,7 @@ string last,path;
 
 void log(string s)
 {
+#ifdef DESKTOP
     FILE *f;
     time_t tt;
     char times[50];
@@ -50,6 +51,9 @@ void log(string s)
     printf("%s",s.c_str());
     fflush(stdout);
     last=s;
+#else
+    Q_UNUSED(s);
+#endif
 }
 
 Ticker::Ticker()
@@ -126,10 +130,10 @@ QString to_stringd(double d)
     return(s);
 }
 
-QString to_stringl(long l)
+QString to_stringl(long long l)
 {
     char s[50];
-    snprintf(s,50,"%ld",l);
+    snprintf(s,50,"%lld",l);
     return(s);
 }
 
@@ -143,7 +147,7 @@ QString to_stringp(double d)
 QString to_string2(double d)
 {
     char s[50];
-    snprintf(s,50,"%.2f",d);
+    snprintf(s,50,"%.2f",floor(d*100)/100.0);
     return(s);
 }
 

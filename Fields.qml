@@ -24,7 +24,7 @@ import QtQuick.Controls 1.3
 Item {
     id: fields
     property alias action : action
-    property alias actionExternal : actionExternal
+    property alias flash :flash
     property alias key : key
     property alias secret : secret
 
@@ -81,11 +81,12 @@ Item {
     }
 
     MButton {
-        id: actionExternal
+        id: flash
         x: Math.round(750*base.scalex())
         y: Math.round(600*base.scaley())
         width: Math.round(300*base.scalex())
         text: base.trans(90)
         onClicked: null
+        visible: false
     }
 }

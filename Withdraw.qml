@@ -41,6 +41,9 @@ Frame {
         if (base.login(pass)) {
             loginField.visible=false
             withdrawFrame.visible=true
+            base.refreshCurrencies()
+            currency.popup.ref()
+            withdrawBalance.text=makeBalance()
             refresh()
         }else {
             refresh()
@@ -68,14 +71,38 @@ Frame {
         }
     }
 
+    function checkmax()
+    {
+        if (!base.isLogged) return
+        if ((parseFloat(withdrawAmount.text)>0)&&(modelbalance.get(base.stringtocur(currency.name))!==null)&&(parseFloat(withdrawAmount.text)>modelbalance.get(base.stringtocur(currency.name)).value)) withdrawAmount.text=modelbalance.get(base.stringtocur(currency.name)).value
+    }
+
+    function makeBalance()
+    {
+        return(modelbalance.get(base.stringtocur(currency.name)).value+" "+currency.name)
+    }
+
+    function openScanner()
+    {
+        idx=currency.view.currentIndex
+        addr=withdrawAddress.text
+        handlerLoader("qrc:///WithdrawCam.qml")
+    }
+
     onRefresh: parseKrypto(base.getscannedtxt())
 
     onUpdate: refresh()
 
+    onClear:
+    {
+        loginField.visible=!base.isLogged()
+        withdrawFrame.visible=base.isLogged()
+        refresh()
+    }
+
     Login {
         id: loginField
-        x: Math.round(370*base.scalex())
-        y: Math.round(600*base.scaley())
+        img.visible: true
         button.onClicked: {
             pass=loginField.text
             login()
@@ -86,20 +113,32 @@ Frame {
     {
         id : withdrawFrame
         visible: base.isLogged()
+        y: Math.round(70*base.scaley())
 
         MListButton {
             id: currency
             x: Math.round(420*base.scalex())
-            y: Math.round(400*base.scaley())
-            model: modelbalance
-            view.currentIndex: 2
+            y: Math.round(100*base.scaley())
+            z: 11
+            model: modeldepositcurrencies
+            view.currentIndex: {
+                if (idx==-1)
+                {
+                    if (base.isLogged())
+                    {
+                        if (ex.name==="Bitmarket") 2
+                        else 1
+                    }else 0
+                }
+                else idx
+            }
             inner.border.width: 0
             inner.radius: 0
             onNameChanged: {
                 if (name==="EUR") withdrawSwift.visible=true
                 else withdrawSwift.visible=false
                 if (name==="PLN") {
-                    withdrawNote.visible=true
+                    if (ex.name==="Bitmarket") withdrawNote.visible=true
                     isfast.visible=true
                 }
                 else {
@@ -108,29 +147,72 @@ Frame {
                 }
                 if ((name==="EUR")||(name==="PLN"))
                 {
-                    withdrawAddress.text=base.trans(106)
+                    if (addr!="") withdrawAddress.text=addr
+                    else withdrawAddress.text=base.trans(106)
                     withdrawAddress.mtext=base.trans(106)
                     actionExternal.visible=false
                 }else
                 {
-                    withdrawAddress.text=base.trans(67)
+                    if (addr!="") withdrawAddress.text=addr
+                    else withdrawAddress.text=base.trans(67)
                     withdrawAddress.mtext=base.trans(67)
-                    actionExternal.visible=true
+                    if (ex.name==="Bitmarket") actionExternal.visible=true
                 }
+                base.setWithdrawalCurrencyName(name)
+                chooseaccount.popup.view.currentIndex=0
+                chooseaccount.popup.ref()
+                if (ex.name==="Bitmaszyna") withdrawAddress.text=base.getWithdrawalAccount(chooseaccount.view.currentIndex)
+                withdrawAmount.text=base.trans(14)
+                withdrawAddress.text=base.trans(67);
+            }
+        }
+
+        MListButton {
+            id: chooseaccount
+            x: Math.round(120*base.scalex())
+            y: Math.round(200*base.scaley())
+            width: Math.round(860*base.scalex())
+            popup.itemWidth: Math.round(860*base.scalex())
+            model: modelwithdrawalaccounts
+            inner.border.width: 0            
+            inner.radius: 0
+            visible: (ex.name==="Bitmaszyna")?true:false
+//            visible: false
+            onNameChanged:
+            {
+                withdrawAddress.text=base.getWithdrawalAccount(chooseaccount.view.currentIndex)
             }
         }
 
         MText {
             id: withdrawAmount
             x:Math.round(20*base.scalex())
-            y:Math.round(700*base.scaley())
-            z:-1
+            y:Math.round(400*base.scaley())
             width: Math.round(400*base.scalex())
             text: base.trans(14)
             horizontalAlignment: Text.AlignLeft
             inputMethodHints: Qt.ImhFormattedNumbersOnly
             font.pixelSize: Math.floor(35*base.scaley())
-            onFocusChanged: masked(this,base.trans(14))
+            onFocusChanged: {
+                masked(this,base.trans(14))
+            }
+            onDisplayTextChanged:
+            {
+                checkmax()
+            }
+        }
+
+        Text
+        {
+            id: withdrawBalance
+
+            x:Math.round(500*base.scalex())
+            y:Math.round(420*base.scaley())
+            width: Math.round(400*base.scalex())
+            height: Math.round(85*base.scaley())
+            horizontalAlignment: Text.AlignRight
+            font.pixelSize: Math.round(35*base.scalex())
+            text: makeBalance()
         }
 
         MText {
@@ -138,11 +220,15 @@ Frame {
 
             id: withdrawAddress
             x:Math.round(20*base.scalex())
-            y:Math.round(800*base.scaley())
-            z:-1
+            y:Math.round(500*base.scaley())
             width: Math.round(1000*base.scalex())
-            text: base.trans(67)
+            text: {
+                if (addr!="") addr
+                else base.trans(67)
+            }
             mtext: base.trans(67)
+            readOnly: (ex.name==="Bitmaszyna")
+            bcolor: (ex.name==="Bitmaszyna")?"#bbbbbb":"#ffffff"
             horizontalAlignment: Text.AlignLeft
             font.pixelSize: Math.floor(35*base.scaley())
             onFocusChanged: masked(this,mtext)
@@ -151,8 +237,7 @@ Frame {
         MText {
             id: withdrawSwift
             x:Math.round(20*base.scalex())
-            y:Math.round(900*base.scaley())
-            z:-1
+            y:Math.round(600*base.scaley())
             width: Math.round(400*base.scalex())
             text: base.trans(78)
             horizontalAlignment: Text.AlignLeft
@@ -163,8 +248,7 @@ Frame {
         MText {
             id: withdrawNote
             x:Math.round(20*base.scalex())
-            y:Math.round(900*base.scaley())
-            z:-1
+            y:Math.round(600*base.scaley())
             width: Math.round(1000*base.scalex())
             text: base.trans(79)
             horizontalAlignment: Text.AlignLeft
@@ -176,8 +260,7 @@ Frame {
             id: withdrawPass
             visible: base.isEncrypted()
             x:Math.round(20*base.scalex())
-            y:Math.round(600*base.scaley())
-            z:-1
+            y:Math.round(300*base.scaley())
             width: Math.round(500*base.scalex())
             text: base.trans(58)
             horizontalAlignment: Text.AlignLeft
@@ -189,8 +272,7 @@ Frame {
         {
             id: isfast
             x:Math.round(20*base.scalex())
-            y:Math.round(1000*base.scaley())
-            z:-1
+            y:Math.round(700*base.scaley())
             width: Math.round(1000*base.scalex())
             checked: false
             style: CheckBoxStyle {
@@ -206,18 +288,25 @@ Frame {
         MButton {
             id: actionExternal
             x: Math.round(20*base.scalex())
-            y: Math.round(1200*base.scaley())
+            y: Math.round(900*base.scaley())
             width: Math.round(300*base.scalex())
             text: base.trans(90)
-            onClicked: base.scanner()
+            onClicked: {
+                if (base.getVersion()===1) base.scanner() //android version
+                else //desktop and iphone
+                {
+                    openScanner()
+                }
+            }
         }
 
         MButton{
             id: action
             x: Math.round(420*base.scalex())
-            y: Math.round(1200*base.scaley())
+            y: Math.round(800*base.scaley())
             text: base.trans(65)
             onClicked: {
+                if ((withdrawAddress.text===base.trans(67))||(withdrawAddress.text===base.trans(106))||(withdrawAmount.text<=0)) return
                 if ((base.isEncrypted())&&(!base.checkWithdrawalPass(withdrawPass.text)))
                 {
                     errorDialog.text=base.trans(63)

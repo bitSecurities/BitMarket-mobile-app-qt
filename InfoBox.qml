@@ -31,18 +31,22 @@ Rectangle {
 
     Text {
         id: infoup
-        y: Math.round(3*base.scaley())
-        horizontalAlignment: Text.AlignHCenter
+        y: Math.round(5*base.scaley())
         width: parent.width
+        height: Math.round(50*base.scaley())
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         color: "#ffffff"
         font.pixelSize: Math.round(35*base.scalex())
     }
 
     Text {
         id: infodown
-        y: Math.round(50*base.scaley())
-        horizontalAlignment: Text.AlignHCenter
+        y: Math.round(70*base.scaley())
         width: parent.width
+        height: Math.round(50*base.scaley())
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         text: "--"
         color: "#ffffff"
         font.bold: true

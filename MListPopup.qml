@@ -41,7 +41,7 @@
 import QtQuick 2.0
 
 Popup {
-    id: cameraListPopup
+    id: listPopup
     z: 10
 
     property alias model : view.model
@@ -63,7 +63,7 @@ Popup {
           currentItem=model.get(view.currentIndex)
     }
 
-    ListView {
+    ListView {        
         id: view
         anchors.fill: parent
         anchors.margins: Math.round(4*base.scalex())
@@ -73,8 +73,8 @@ Popup {
         currentIndex: 0
 
         delegate: Item {
-            width: cameraListPopup.itemWidth
-            height: cameraListPopup.itemHeight
+            width: listPopup.itemWidth
+            height: listPopup.itemHeight
 
             Text {
                 id: nametxt
@@ -112,7 +112,7 @@ Popup {
                 anchors.fill: parent
                 onClicked: {
                     view.currentIndex = index
-                    cameraListPopup.selected(name)
+                    listPopup.selected(name)
                     ref()
                }
             }

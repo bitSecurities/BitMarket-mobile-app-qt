@@ -55,5 +55,9 @@
         <file>Frame.qml</file>
         <file>MListButtonN.qml</file>
         <file>MDialog.qml</file>
+        <file>MoreDialog.qml</file>
+        <file>images/bitmaszyna_login.png</file>
+        <file>images/bitmarket_login.png</file>
+        <file>WithdrawCam.qml</file>
     </qresource>
 </RCC>

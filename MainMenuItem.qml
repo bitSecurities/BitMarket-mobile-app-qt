@@ -43,5 +43,7 @@ Item
         color: "#ffffff"
         x: Math.round(280*base.scalex())
         y: Math.round((285+125*k)*base.scaley())
+        height: Math.round(54*base.scaley())
+        verticalAlignment: Text.AlignVCenter
     }
 }

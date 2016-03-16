@@ -82,6 +82,8 @@ public:
 	string sign(string& privkey,string& msg);
 	int api(string,string);
 	string strfromtype(char type);
+    bool getAccountInfo();
+    int adjustCurrency(int in);
 };
 
 #endif /* BITMASZYNA_H_ */

@@ -28,7 +28,7 @@
 class Zakres
 {
 public:
-    long xstart,xend;
+    double xstart,xend;
     double ystart,yend;
 };
 
@@ -36,7 +36,7 @@ class Mpoint
 {
 public:
     double y;
-    long x;
+    double x;
 };
 
 class Swieczka
@@ -49,7 +49,7 @@ class Wykres : public QQuickPaintedItem
 {
     Q_OBJECT
 
-    QBrush *brushRed,*brushGreen;
+    QBrush *brushRed,*brushGreen,*brushBid,*brushAsk;
     QPen *pen,*penKnot,*penText;
     Mpoint frame,frame2,podzial;
     Zakres zakres;
@@ -59,9 +59,9 @@ class Wykres : public QQuickPaintedItem
     public:
         Wykres(QQuickItem *parent = 0);
         void paint(QPainter *painter);
-        double danetowykresx(long x);
+        double danetowykresx(double x);
         double danetowykresy(double y);
-        long wykrestodanex(double x);
+        double wykrestodanex(double x);
         double wykrestodaney(double y);
         void rysujSwieczke(QPainter *painter,Ohlc ohlc);
 };

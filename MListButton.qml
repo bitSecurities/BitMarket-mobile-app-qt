@@ -46,6 +46,7 @@ Item {
     property alias model : popup.model
     property alias popup : popup
     property alias view : popup.view
+    //property alias dele : popup.dele
     property alias image : image.source
     property alias bcolor : button.color
     property alias text : button.text
@@ -85,6 +86,7 @@ Item {
 
     MListPopup {
         id: popup
+        z: 10
         anchors.top: parent.bottom
         anchors.topMargin: 4*base.scaley()
         visible: opacity > 0

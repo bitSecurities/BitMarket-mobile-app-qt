@@ -29,20 +29,23 @@
 #include <QtConcurrentRun>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <QClipboard>
 #include "basedata.h"
 #include "Bitmarket.h"
 #include "Bitmaszyna.h"
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#ifdef IPHONE
+#include <math.h>
+#endif
 #ifdef ANDROID
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 extern string path;
-
 BaseData::BaseData()
 {    
-#ifndef ANDROID
+#ifdef DESKTOP
     //    width=1080;
     //    height=1920;
     width=360;
@@ -50,7 +53,7 @@ BaseData::BaseData()
     sx=width/1080.0;
     sy=height/1920.0;
     path="/logi";
-#else
+#elif ANDROID
     QRect rec = QApplication::desktop()->screenGeometry();
     height = rec.height();
     width = rec.width();
@@ -59,6 +62,12 @@ BaseData::BaseData()
     QAndroidJniObject mediaDir = QAndroidJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
     QAndroidJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
     path = mediaPath.toString().toStdString();
+#elif IPHONE
+    QRect rec = QApplication::desktop()->screenGeometry();
+    height = rec.height();
+    width = rec.width();
+    sx=width/1080.0;
+    sy=height/1920.0;
 #endif
     Exchange *e;
     e=new Bitmarket();
@@ -79,7 +88,7 @@ BaseData::BaseData()
     e->marketsLong.push_back("LTC/PLN");
     e->markets.push_back("KBMBTC");
     e->marketsLong.push_back("KBM/BTC");
-    //exchanges.push_back(e);
+    exchanges.push_back(e);
     cmarket=currentExchange->markets.front();
     cmarketI=0;
     cmarket=currentExchange->markets[cmarketI];
@@ -111,6 +120,25 @@ BaseData::BaseData()
     levs.push_back(5.0);
     levs.push_back(10.0);
     timeframe=300;
+    timeframes.push_back("1 m");
+    timeframes.push_back("4 m");
+    timeframes.push_back("16 m");
+    timeframes.push_back("2 h");
+    timeframes.push_back("8 h");
+    timeframes.push_back("1 d");
+    timeframes.push_back("2 d");
+    timeframes.push_back("4 d");
+    timeframes.push_back(trans(119));
+    timeframes_bitmaszyna.push_back("1 m");
+    timeframes_bitmaszyna.push_back("5 m");
+    timeframes_bitmaszyna.push_back("15 m");
+    timeframes_bitmaszyna.push_back("1 h");
+    timeframes_bitmaszyna.push_back("4 h");
+    timeframes_bitmaszyna.push_back("12 h");
+    timeframes_bitmaszyna.push_back("1 d");
+    timeframes_bitmaszyna.push_back("1 w");
+    timeframes_bitmaszyna.push_back("1 M");
+    timeframes_bitmaszyna.push_back(trans(119));
     OpenSSL_add_all_algorithms();
     connect(this, SIGNAL(dataLoaded()),this, SLOT(onCompleted()));
     ileswieczek=40;
@@ -124,6 +152,40 @@ BaseData::BaseData()
     //    currentExchange->transferToLeverage(cmarket,0.1);
     //    currentExchange->marketChart(cmarket);
     //prepareChartData();
+}
+
+int BaseData::getVersion()
+{
+#ifdef ANDROID
+    return(ANDROIDVERSION);
+#endif
+#ifdef IPHONE
+    return(IPHONEVERSION);
+#endif
+#ifdef DESKTOP
+#ifdef DEBUG
+    //    return(ANDROIDVERSION);
+#endif
+    return(DESKTOPVERSION);
+#endif
+}
+
+QString BaseData::getWithdrawalAccount(unsigned int k)
+{
+    if ((!isLogged())||(currentExchange->withdrawalcurrency<0)||(currentExchange->withdrawalcurrency>=MAXCURR))  return(trans(67));
+    if (k<currentExchange->withdrawalaccounts[currentExchange->withdrawalcurrency].size()) return(currentExchange->withdrawalaccounts[currentExchange->withdrawalcurrency][k].account.c_str());
+    return(trans(67));
+}
+
+void BaseData::setWithdrawalCurrencyName(QString name)
+{
+    unsigned int i;
+
+    for (i=0;i<currentExchange->currencies.size();i++)
+    {
+        if (currentExchange->currencies[i].name==name.toStdString()) currentExchange->withdrawalcurrency=i;
+    }
+    emit(model[WITHDRAWALACCOUNTS]->layoutChanged());
 }
 
 void BaseData::saveAlerts(bool active,double bidabove,double bidbelow,double askabove,double askbelow)
@@ -240,13 +302,21 @@ bool BaseData::deposit(QString currency)
 
 QString BaseData::getDeposit()
 {
-    if ((currentExchange->currentDeposit.currency=="BTC")||(currentExchange->currentDeposit.currency=="LTC")) return(trans(110)+" "+currentExchange->currentDeposit.currency.c_str()+":<br><br><b>"+currentExchange->currentDeposit.acc_num.c_str())+"</b>";
+    if ((currentExchange->currentDeposit.currency=="BTC")||(currentExchange->currentDeposit.currency=="LTC")) {
+        if (currentExchange->currentDeposit.bank_name=="Error") return(QString("Error: ")+currentExchange->currentDeposit.acc_num.c_str());
+        else return(trans(110)+" "+currentExchange->currentDeposit.currency.c_str()+":<br><br><b>"+currentExchange->currentDeposit.acc_num.c_str()+"</b>");
+    }
     else {
         QString s;
         s=trans(106)+": <b>"+QString(currentExchange->currentDeposit.acc_num.c_str())+"</b><br>"+trans(107)+": <b>"+currentExchange->currentDeposit.bank_name.c_str()+"</b><br>"+trans(108)+": <b>"+currentExchange->currentDeposit.pay_to.c_str()+"</b><br>"+trans(109)+": <b>"+currentExchange->currentDeposit.transfer_title.c_str()+"</b><br>";
         if (currentExchange->currentDeposit.currency=="EUR") s+=trans(78)+": <b>"+currentExchange->currentDeposit.swift_code.c_str()+"</b>";
         return(s);
     }
+}
+
+void BaseData::copyAccount()
+{
+    QApplication::clipboard()->setText(QString(currentExchange->currentDeposit.acc_num.c_str()));
 }
 
 bool BaseData::withdraw(double amount,QString currency,QString address,QString swift,QString note,bool fast)
@@ -262,7 +332,8 @@ bool BaseData::testWithdraw(double amount,QString currency,QString address,QStri
 
 double BaseData::getLastFee()
 {
-    return(lastFee);
+    if (currentExchange->id==BITMASZYNA) return(1.5);
+    else return(lastFee);
 }
 
 void BaseData::encryptKeys(QString pass)
@@ -327,7 +398,8 @@ bool BaseData::marginBalanceRemove(QString amount)
 
 QString BaseData::getLastError()
 {
-    return(QString(currentExchange->lasterror.c_str()));
+    if (currentExchange->lasterror=="Invalid API key") return(trans(120));
+    else return(QString(currentExchange->lasterror.c_str()));
 }
 
 bool BaseData::executeLeverage(QString price,QString amount,int type,int leverage,QString rateProfit,QString rateLoss)
@@ -355,6 +427,14 @@ double BaseData::getAsk()
     return(currentExchange->currentTicker.ask);
 }
 
+QString BaseData::getLeverageData(int k)
+{
+    if (k==0) return(to_stringd(currentExchange->balance.balance[LBTC]));
+    else if (k==1) return(to_stringd(currentExchange->balance.blocked[LBTC]));
+    else if (k==2) return(to_stringd(currentExchange->balance.blocked[LBTC]+currentExchange->balance.balance[LBTC]));
+    return("");
+}
+
 QString BaseData::getLeverageInfo(int k)
 {
     if (k==0) return(to_stringd(currentExchange->balance.balance[LBTC])+" "+getFirstCurrency()+"\n");
@@ -370,12 +450,19 @@ void BaseData::changeTimeFrame(QString tframe)
 {
     if (tframe=="1 m") timeframe=60;
     else if (tframe=="4 m") timeframe=240;
+    else if (tframe=="5 m") timeframe=300;
+    else if (tframe=="15 m") timeframe=900;
     else if (tframe=="16 m") timeframe=960;
+    else if (tframe=="1 h") timeframe=3600;
     else if (tframe=="2 h") timeframe=7200;
     else if (tframe=="8 h") timeframe=28800;
+    else if (tframe=="12 h") timeframe=43200;
     else if (tframe=="1 d") timeframe=86400;
     else if (tframe=="2 d") timeframe=172800;
     else if (tframe=="4 d") timeframe=345600;
+    else if (tframe=="1 w") timeframe=604800;
+    else if (tframe=="1 M") timeframe=2592000;
+    else if (tframe==trans(119)) timeframe=-1;
     else timeframe=60;
     prepareChartData();
 }
@@ -394,63 +481,96 @@ void BaseData::prepareChartData()
 {
     double minzakres,maxzakres;
     bool first,retry;
-    long zks;
+    long long zks;
     vector<Offer>::iterator it;
     Ohlc ohlc;
 
     minzakres=0.0;
     maxzakres=0.0;
     zks=timeframe;
-    first=true;
-    swieczki.clear();
-    mutex_list.lock();
-    for(it=currentExchange->trades.begin();it!=currentExchange->trades.end();++it)
+    //log(to_string(zks)+"\n");
+    if (zks>0)
     {
-        if ((minzakres>it->price)||(minzakres==0.0)) minzakres=it->price;
-        if (maxzakres<it->price) maxzakres=it->price;
-    }
-    for(it=currentExchange->trades.begin();it!=currentExchange->trades.end();++it)
-    {
-        do
-        {
-            retry=false;
-            if (first)
-            {
-                time_t tt;
-
-                ohlc.h=it->price;
-                ohlc.o=it->price;
-                ohlc.c=it->price;
-                ohlc.l=it->price;
-                tt=time(NULL);
-                ohlc.t=tt-tt%zks;
-                //log(QString::number(tt)+"\n");
-                //log(QString::number(ohlc.t)+"\n");
-                first=false;
-            }
-            if (it->time<ohlc.t)
-            {
-                swieczki.push_back(ohlc);
-                ohlc.t=ohlc.t-zks;
-                ohlc.h=ohlc.o;
-                ohlc.l=ohlc.o;
-                ohlc.c=ohlc.o;
-                retry=true;
-            }
-            if (it->price>ohlc.h) ohlc.h=it->price;
-            if (it->price<ohlc.l) ohlc.l=it->price;
-            ohlc.o=it->price;
-            //log(("timeframe: "+QString::number(it->time)+" "+QString::number(ohlc.t-zks)+"\n").toStdString());
-        }while((retry)&&(swieczki.size()<90));
-        if (swieczki.size()>=90) break;
-        //log(("timeframe: "+QString::number(it->time)+" "+QString::number(ohlc.t)+" "+QString::number(swieczki.size())+"\n").toStdString());
-    }
-    mutex_list.unlock();
-    swieczki.push_back(ohlc);
-    if (swieczki.size()<ILESWIECZEKMAX)
-    {
+        first=true;
         swieczki.clear();
-        currentExchange->marketChart(cmarket,swieczki.front().t-ILESWIECZEKMAX*timeframe,ohlc.t,timeframe);
+        mutex_list.lock();
+        for(it=currentExchange->trades.begin();it!=currentExchange->trades.end();++it)
+        {
+            if ((minzakres>it->price)||(minzakres==0.0)) minzakres=it->price;
+            if (maxzakres<it->price) maxzakres=it->price;
+        }
+        for(it=currentExchange->trades.begin();it!=currentExchange->trades.end();++it)
+        {
+            do
+            {
+                retry=false;
+                if (first)
+                {
+                    time_t tt;
+
+                    ohlc.h=it->price;
+                    ohlc.o=it->price;
+                    ohlc.c=it->price;
+                    ohlc.l=it->price;
+                    tt=time(NULL);
+                    ohlc.t=tt-tt%zks;
+                    //log(QString::number(tt)+"\n");
+                    //log(QString::number(ohlc.t)+"\n");
+                    first=false;
+                }
+                if (it->time<ohlc.t)
+                {
+                    swieczki.push_back(ohlc);
+                    ohlc.t=ohlc.t-zks;
+                    ohlc.h=ohlc.o;
+                    ohlc.l=ohlc.o;
+                    ohlc.c=ohlc.o;
+                    retry=true;
+                }
+                if (it->price>ohlc.h) ohlc.h=it->price;
+                if (it->price<ohlc.l) ohlc.l=it->price;
+                ohlc.o=it->price;
+                //log(("timeframe: "+QString::number(it->time)+" "+QString::number(ohlc.t-zks)+"\n").toStdString());
+            }while((retry)&&(swieczki.size()<90));
+            if (swieczki.size()>=90) break;
+            //log(("timeframe: "+QString::number(it->time)+" "+QString::number(ohlc.t)+" "+QString::number(swieczki.size())+"\n").toStdString());
+        }
+        mutex_list.unlock();
+        swieczki.push_back(ohlc);
+        if (swieczki.size()<ILESWIECZEKMAX)
+        {
+            currentExchange->marketChart(cmarket,swieczki.front().t-ILESWIECZEKMAX*timeframe,ohlc.t,timeframe);
+        }
+    }else
+    {
+        double sumbid,sumask;
+
+        sumbid=0.0;
+        sumask=0.0;
+        depthRange=0.25;
+        depthbid.clear();
+        depthCenter=(currentExchange->currentTables->asks.front().price+currentExchange->currentTables->bids.front().price)/2.0;
+        for(it=currentExchange->currentTables->bids.begin();it!=currentExchange->currentTables->bids.end();++it)
+        {
+            Depth d;
+            sumbid+=it->amount;
+            d.value=sumbid;
+            d.price=it->price;
+            depthbid.push_back(d);
+            if (it->price<depthCenter-depthCenter*depthRange) break;
+        }
+        depthask.clear();
+        for(it=currentExchange->currentTables->asks.begin();it!=currentExchange->currentTables->asks.end();++it)
+        {
+            Depth d;
+            sumask+=it->amount;
+            d.value=sumask;
+            d.price=it->price;
+            depthask.push_back(d);
+            if (it->price>depthCenter+depthCenter*depthRange) break;
+        }
+        if (sumbid>sumask) depthMax=sumbid;
+        else depthMax=sumask;
     }
 }
 
@@ -474,6 +594,16 @@ QString BaseData::curtostring(int cur)
     else if (cur==PLN) return("PLN");
     else if (cur==EUR) return("EUR");
     else return("");
+}
+
+int BaseData::stringtocur(QString s)
+{
+    if (s=="BTC") return(BTC);
+    else if (s=="LTC") return(LTC);
+    else if (s=="KBM") return(KBM);
+    else if (s=="PLN") return(PLN);
+    else if (s=="EUR") return(EUR);
+    else return(0);
 }
 
 int BaseData::getCurrId(int t)
@@ -780,6 +910,7 @@ void BaseData::changelang(QString name)
     if (name=="English") currentLanguage=ENGLISH;
     else if (name=="Polski") currentLanguage=POLISH;
     preparetrans();
+    timeframes[8]=trans(119);
     emit(model[MENU]->layoutChanged());
     emit(model[ORDER]->layoutChanged());
 }
@@ -833,6 +964,11 @@ bool BaseData::getFunds()
         emit(model[ASK]->dataChanged(model[ASK]->index(0,0),model[ASK]->index(model[ASK]->rowCount()-1,0)));
     }
     return(ret);
+}
+
+void BaseData::refreshCurrencies()
+{
+    emit(model[DEPOSITCURRENCIES]->layoutChanged());
 }
 
 bool BaseData::login(QString pass)
@@ -891,7 +1027,7 @@ QString BaseData::buyPrice(int row)
     rowr=currentExchange->currentTables->asks.size()-row-1;
     for(it=currentExchange->currentTables->asks.begin();it!=currentExchange->currentTables->asks.end();++it)
     {
-        sum+=it->sum;
+        sum=it->sum;
         if ((i==rowr)||(sum>currentExchange->balance.balance[currency(cmarket,SECOND)])) return(QString::number(it->price));
         i++;
     }
@@ -911,13 +1047,16 @@ QString BaseData::buyAmount(int row)
     i=0;
     for(it=currentExchange->currentTables->asks.begin();it!=currentExchange->currentTables->asks.end();++it)
     {
-        sum+=it->sum;
-        if ((i==rowr)||(sum>currentExchange->balance.balance[currency(cmarket,SECOND)])) break;
-        sum2+=it->sum;
-        amount+=it->amount;
+
+        sum=it->sum;
+        if (sum>currentExchange->balance.balance[currency(cmarket,SECOND)]) {
+            amount=amount+(currentExchange->balance.balance[currency(cmarket,SECOND)]-sum2)/it->price;
+            break;
+        }else amount+=it->amount;
+        if (i==rowr) break;
+        sum2=it->sum;
         i++;
     }
-    if (sum>currentExchange->balance.balance[currency(cmarket,SECOND)]) amount=amount+(currentExchange->balance.balance[currency(cmarket,SECOND)]-sum2)/it->price;
     return(to_stringd(amount));
 }
 
@@ -949,8 +1088,11 @@ QString BaseData::sellAmount(int row)
     for(it=currentExchange->currentTables->bids.begin();it!=currentExchange->currentTables->bids.end();++it)
     {
         amount+=it->amount;
+        //        log("dsfd: "+to_string(amount)+" "+to_string(currency(cmarket,FIRST))+"\n");
         if ((i==row)||(amount>currentExchange->balance.balance[currency(cmarket,FIRST)])) {
+            //        log("2: "+to_string(amount)+" "+to_string(currency(cmarket,FIRST))+"\n");
             if (amount>currentExchange->balance.balance[currency(cmarket,FIRST)]) amount=currentExchange->balance.balance[currency(cmarket,FIRST)];
+            //log("3: "+to_string(amount)+" "+to_string(currency(cmarket,FIRST))+"\n");
             return(to_stringd(amount));
         }
         i++;
@@ -1108,12 +1250,17 @@ void BaseData::getdepthimmediate()
         currentExchange->currentTables=*it;
     }
     currentExchange->updatedTables.clear();
+    mutex_list.unlock();
     if (currentExchange->logged) getFunds();
     stopemit=false;
-    mutex_list.unlock();
     emit(model[BID]->layoutChanged());
     emit(model[ASK]->layoutChanged());
     emit(model[BALANCE]->layoutChanged());
+}
+
+int BaseData::getExId()
+{
+    return(currentExchange->id);
 }
 
 void BaseData::changeEx(QString s)
@@ -1126,6 +1273,8 @@ void BaseData::changeEx(QString s)
         {
             currentExchange=*it;
             emit(model[MARKETS]->layoutChanged());
+            emit(model[DEPOSITCURRENCIES]->layoutChanged());
+            emit(model[TIMEFRAMES]->layoutChanged());
             cmarket=currentExchange->markets.front();
             //getdepth();
             getdepthimmediate();
@@ -1221,4 +1370,10 @@ QString BaseData::getscannedtxt()
     return("");
 }
 
+void BaseData::changeLocale()
+{
+#ifndef IPHONE
+    setlocale(LC_NUMERIC,"en_US.UTF-8");
+#endif
+}
 

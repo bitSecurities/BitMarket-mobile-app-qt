@@ -41,8 +41,17 @@ Frame {
         id: fields
 
         action.text: base.trans(17)
-        action.onClicked: handlerLoader("qrc:///Cam.qml")
-        actionExternal.text: base.trans(90)
-        actionExternal.onClicked: base.scanner()
+        action.onClicked: {
+            if ((base.getVersion()===0)|| //desktop version
+                    (base.getVersion()===2)) //iphone version
+            {
+                handlerLoader("qrc:///Cam.qml")
+            }else if (base.getVersion()===1) //android
+            {
+                base.scanner()
+            }
+        }
+        //actionExternal.text: base.trans(90)
+        //actionExternal.onClicked: base.scanner()
     }
 }

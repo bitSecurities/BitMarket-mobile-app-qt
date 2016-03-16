@@ -20,11 +20,22 @@
 
 #include "Bitmaszyna.h"
 #include "util.h"
+#include "basedata.h"
 
 const string Bitmaszyna::strMessageMagic="Bitmaszyna.pl API:\n";
 extern void log(string s);
+extern BaseData *base;
 
 #define BITMASZYNAURL "https://bitmaszyna.pl/api/"
+//#define BITMASZYNAURL "https://192.168.1.100:10443/api/"
+
+#ifdef IPHONE
+void BN_zero_ex(BIGNUM *)
+{
+
+}
+
+#endif
 
 Bitmaszyna::Bitmaszyna() {
     bb=false;
@@ -48,29 +59,36 @@ Bitmaszyna::Bitmaszyna() {
     Currency c;
     c.name="PLN";
     c.type=PLN;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="BTC";
     c.type=BTC;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="LTC";
     c.type=LTC;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="KBM";
     c.type=KBM;
+    c.deposit=false;
     currencies.push_back(c);
     key="";
     secret="";
+    withdrawalcurrency=BTC;
 }
 
 string Bitmaszyna::sign(string& privkey,string& msg) {
     v=DecodeBase64(privkey.c_str(),&bb);
     if (bb)
     {
-        log("invalid secret\n");
+        lasterror="Invalid secret";
+        logerror();
         return("");
     }else if (v.size()!=32)
     {
-        log("secret too short\n");
+        lasterror="Secret too short";
+        logerror();
         return("");
     }
     ckey.SetSecret(v);
@@ -80,7 +98,9 @@ string Bitmaszyna::sign(string& privkey,string& msg) {
     SHA256_Final((unsigned char *)&hash1,&ctx);
     SHA256((unsigned char *)&hash1,sizeof(hash1),(unsigned char *)&hash2);
     if (!ckey.SignCompact(hash2, vsig)) {
-        printf("Sign failed\n");
+        lasterror="Sign failed";
+        logerror();
+        return("");
     }
     signature=base64_encode(&vsig[0],vsig.size());
     return(signature);
@@ -144,6 +164,7 @@ bool Bitmaszyna::fetchData(struct json_object **json,struct json_object **jtmp)
 {
     json_object_object_get_ex(*json,"result",jtmp);
     if (string(json_object_get_string(*jtmp))!=string("ok")) {
+        json_object_object_get_ex(*json,"reason",jtmp);
         getError(jtmp);
         curl_mutex.unlock();
         return(false);
@@ -174,6 +195,9 @@ bool Bitmaszyna::getTickerData(string url,struct json_object **json)
     curl_easy_setopt(curl, CURLOPT_URL, (BITMASZYNAURL+url).c_str());
     curl_easy_setopt(curl, CURLOPT_POST, 0);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, 0);
+#ifdef DEBUG
+    log((BITMASZYNAURL+url)+"\n");
+#endif
     curlcode=curl_easy_perform(curl);
     if (chunk.size>0)
     {
@@ -204,10 +228,40 @@ Bitmaszyna::~Bitmaszyna() {
 
 }
 
-bool Bitmaszyna::marketChart(string market,long,long,long)
+bool Bitmaszyna::marketChart(string market,long starttime,long endtime,long interval)
 {
-    Q_UNUSED(market);
-    return(true);
+    struct json_object *json,*jtmp2,*jtmp3;
+    struct array_list *arr;
+    int i;
+
+    curl_mutex.lock();
+    if (getTickerData(market+"/chartData.json?starttime="+to_stringl(starttime).toStdString()+"&endtime="+to_stringl(endtime).toStdString()+"&interval="+to_stringl(interval).toStdString(),&json))
+    {
+        base->swieczki.clear();
+        arr=json_object_get_array(json);
+        for(i=0;i<arr->length;i++)
+        {
+            Ohlc s;
+
+            jtmp2=(struct json_object *)array_list_get_idx(arr,i);
+            json_object_object_get_ex(jtmp2,"time",&jtmp3);
+            s.t=json_object_get_int64(jtmp3);
+            json_object_object_get_ex(jtmp2,"open",&jtmp3);
+            s.o=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"close",&jtmp3);
+            s.c=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"high",&jtmp3);
+            s.h=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"low",&jtmp3);
+            s.l=json_object_get_double(jtmp3);
+            base->swieczki.push_back(s);
+        }
+        json_object_put(json);
+        curl_mutex.unlock();
+        return(true);
+    }
+    curl_mutex.unlock();
+    return(false);
 }
 
 bool Bitmaszyna::swapOpen(string currency,double amount,double rate)
@@ -307,9 +361,18 @@ bool Bitmaszyna::getticker(string market,Ticker& t)
     return(false);
 }
 
-bool Bitmaszyna::withdraw(double,const string&,const string&,const string&,const string&,bool,bool,double&)
+bool Bitmaszyna::withdraw(double amount,const string& currency,const string& address,const string& swift,const string& note,bool test,bool fast,double& fee)
 {
-    return(false);
+    Q_UNUSED(swift);
+    Q_UNUSED(note);
+    Q_UNUSED(test);
+    Q_UNUSED(fee);
+    string ex;
+
+    if (test) return(true);
+    if (fast) ex="true";
+    else ex="false";
+    return(makeSimpleApiCall("withdrawal",string("nonce=")+to_stringl(getctime()).toStdString()+"&account="+address+"&amount="+to_stringd(amount).toStdString()+"&cur="+currency+"&express="+ex));
 }
 
 bool Bitmaszyna::deposit(const string&)
@@ -370,6 +433,74 @@ bool Bitmaszyna::tradepair(double price,double amount,char type,string market)
 #endif
 }
 
+bool Bitmaszyna::getAccountInfo()
+{
+    struct json_object *json,*jtmp,*jtmp2,*jtmp3;
+    struct array_list *arr,*arr2;
+    int i,j;
+
+    curl_mutex.lock();
+    if (makeApiCall("accountInfo",&json,string("nonce=")+to_stringl(getctime()).toStdString()))
+    {
+        if (!fetchData(&json,&jtmp)) return(false);
+        log(string(chunk.memory)+"\n");
+        json_object_object_get_ex(json,"deposits",&jtmp);
+        arr=json_object_get_array(jtmp);
+        deposits.clear();
+        for(i=0;i<arr->length;i++)
+        {
+            Deposit d;
+
+            jtmp2=(struct json_object *)array_list_get_idx(arr,i);
+            json_object_object_get_ex(jtmp2,"currency",&jtmp3);
+            d.currency=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"bank_name",&jtmp3);
+            d.bank_name=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"pay_to",&jtmp3);
+            d.pay_to=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"acc_num",&jtmp3);
+            d.acc_num=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"swift_code",&jtmp3);
+            d.swift_code=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"transfer_title",&jtmp3);
+            d.transfer_title=json_object_get_string(jtmp3);
+            deposits.push_back(d);
+        }
+        json_object_object_get_ex(json,"withdrawalAccounts",&jtmp);
+        arr=json_object_get_array(jtmp);
+        for(j=0;j<arr->length;j++)
+        {
+            withdrawalaccounts[j].clear();
+            arr2=json_object_get_array((struct json_object *)array_list_get_idx(arr,j));
+            for(i=0;i<arr2->length;)
+            {
+                WithdrawalAccount w;
+                jtmp2=(struct json_object *)array_list_get_idx(arr2,i);
+                w.account=json_object_get_string(jtmp2);
+                i++;
+                jtmp2=(struct json_object *)array_list_get_idx(arr2,i);
+                w.name=json_object_get_string(jtmp2);
+                i++;
+                if (w.account.size()>0) withdrawalaccounts[adjustCurrency(j)].push_back(w);
+            }
+        }
+        json_object_put(json);
+        logged=true;
+        curl_mutex.unlock();
+        return(true);
+    }
+    curl_mutex.unlock();
+    return(false);
+}
+
+int Bitmaszyna::adjustCurrency(int in)
+{
+    if (in==0) return(BTC);
+    else if (in==1) return(LTC);
+    else if (in==2) return(PLN);
+    return(-1);
+}
+
 bool Bitmaszyna::getfunds()
 {    
     struct json_object *json,*jtmp,*jtmp2;
@@ -378,6 +509,7 @@ bool Bitmaszyna::getfunds()
     if (makeApiCall("funds",&json,string("nonce=")+to_stringl(getctime()).toStdString()))
     {
         if (!fetchData(&json,&jtmp)) return(false);
+        log(string(chunk.memory)+"\n");
         json_object_object_get_ex(json,"funds",&jtmp);
         json_object_object_get_ex(jtmp,"available_btc",&jtmp2);
         balance.balance[BTC]=json_object_get_double(jtmp2);
@@ -395,10 +527,14 @@ bool Bitmaszyna::getfunds()
         balance.balance[PLN]=json_object_get_double(jtmp2);
         json_object_object_get_ex(jtmp,"blocked_pln",&jtmp2);
         balance.blocked[PLN]=json_object_get_double(jtmp2);
+        json_object_object_get_ex(jtmp,"takerfee",&jtmp2);
+        fees.taker=json_object_get_double(jtmp2);
+        json_object_object_get_ex(jtmp,"makerfee",&jtmp2);
+        fees.maker=json_object_get_double(jtmp2);
         json_object_put(json);
         logged=true;
         curl_mutex.unlock();
-        return(true);
+        return(getAccountInfo());
     }
     curl_mutex.unlock();
     return(false);

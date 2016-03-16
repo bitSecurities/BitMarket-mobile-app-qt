@@ -1,4 +1,6 @@
-                   GNU LESSER GENERAL PUBLIC LICENSE
+We have convinced this application to use the GPL license in the version of 'LGPLv3, GPLv2 or any later version of the GPL' due to versions of libriaries in Qt. It should be mentioned that LGPLv2 is also compatible with 'GPLv2 or any later version of the GPL' through a license clause. This ensures compatibility with all existing and future GPL code. Applications using both LGPLv2 libraries and LGPLv3 libraries will need to comply with the requirements of both licenses. 
+
+                  GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
@@ -163,4 +165,3 @@ whether future versions of the GNU Lesser General Public License shall
 apply, that proxy's public statement of acceptance of any version is
 permanent authorization for you to choose that version for the
 Library.
-

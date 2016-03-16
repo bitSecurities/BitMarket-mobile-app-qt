@@ -88,7 +88,7 @@ Reverse
 modify transaction
 Flash
 Focus
-External scan
+Scan
 Open
 History
 Buy
@@ -116,3 +116,13 @@ Error
 Min 0.005 BTC
 in
 Min 100 PLN
+No withdrawal accounts defined
+Depth
+Invalid Api key
+More info
+The application allows you to have a safe access to your individual account on the crypto-currency exchange BitMarket. To make this possible, you need to download from the website BitMarket (details below) appropriate access keys (not share them with anyone, after the installation of this application will no longer be visible to outsiders). Then install them as indicated below.<br>Keys for applications install as follows:<br><br>1. [GENERATE KEYS] by logging on to the site www.BitMarket.net on your home computer through the browser - in the section https://www.bitmarket.net/apikeys.php - GENERATE NEW KEY APIs - please check all the checkboxes.<br><br>2. [ENTERING THE KEYS The APP] - after in / in generating the keys in a single browser window opens with information about these keys - you should rewrite the mobile application, or download it via QR code reader installed on your phone - for our application.<br><br>3. When installed in / in key application will handle your account BitMarket - always wish the best results!<br><br>Greetings - Team BitMarket.
+No access to this section.
+To gain access you need to be logged in.
+Stop
+Account number copied
+Address copied

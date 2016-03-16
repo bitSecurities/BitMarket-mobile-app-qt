@@ -42,10 +42,13 @@ public:
     QString translations[MAXTRANS];
     int currentLanguage;
     vector<Ohlc> swieczki;
+    vector<Depth> depthbid,depthask;
+    double depthMax,depthCenter,depthRange;
     //int nmenu[MENUITEMSCOUNT];
-    long timeframe;
+    long long timeframe;
     vector<int> menuitem;
     vector<float> levs;
+    vector<QString> timeframes,timeframes_bitmaszyna;
     string pass;
     bool encrypted,reverse,updated;
     int limitRange,cmarketI;
@@ -57,7 +60,7 @@ public:
 
     BaseData();
     double coma(QString);
-    bool loadLastParallel();
+    Q_INVOKABLE bool loadLastParallel();
     Q_INVOKABLE void getdepthimmediate();
     Q_INVOKABLE int getCurrId(int t);
     Q_INVOKABLE void rotate(int);
@@ -104,6 +107,7 @@ public:
     Q_INVOKABLE QString getSecondCurrency();
     Q_INVOKABLE void changeTimeFrame(QString);
     Q_INVOKABLE QString getLeverageInfo(int);
+    Q_INVOKABLE QString getLeverageData(int);
     Q_INVOKABLE QString getLastError();
     Q_INVOKABLE bool marginList();
     Q_INVOKABLE bool marginBalanceAdd(QString);
@@ -147,6 +151,14 @@ public:
     Q_INVOKABLE double getBid();
     Q_INVOKABLE double getAsk();
     Q_INVOKABLE double getLeverage(int);
+    Q_INVOKABLE int getExId();
+    Q_INVOKABLE void setWithdrawalCurrencyName(QString);
+    Q_INVOKABLE int getVersion();
+    Q_INVOKABLE QString getWithdrawalAccount(unsigned int);
+    Q_INVOKABLE void refreshCurrencies();
+    Q_INVOKABLE int stringtocur(QString s);
+    Q_INVOKABLE void changeLocale();
+    Q_INVOKABLE void copyAccount();
 public slots:
     void onCompleted();
 signals:

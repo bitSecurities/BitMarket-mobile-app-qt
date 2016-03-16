@@ -30,6 +30,7 @@ Item {
     signal rejected()
     property alias title: title.text
     property alias text: text.text
+    property alias moreinfo: moreinfo.text
     property string type
     visible: false
     z: 99
@@ -74,7 +75,7 @@ Item {
                 id: text
                 x: Math.round(20*base.scalex())
                 width: parent.width-Math.round(40*base.scalex())
-                height: Math.round(230*base.scalex())
+                height: Math.round(230*base.scaley())
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -82,8 +83,24 @@ Item {
                 color: "#ffffff"
             }
             MButton {
-                y: Math.round(220*base.scalex())
+                id: moreinfo
+                x: Math.round(650*base.scalex())
+                y: Math.round(220*base.scaley())
+                width: Math.round(330*base.scalex())
+                height: Math.round(140*base.scaley())
+                text: base.trans(121)
+                background: "#ffffff"
+                color: "#41bb1a"
+                visible: ((type==="ok")&&(ex.name==="Bitmarket"))
+                onClicked: {
+                    touch()
+                    accepted()
+                    moreInfo.visible=true
+                }
+            }
+            MButton {
                 x: Math.round(380*base.scalex())
+                y: Math.round(220*base.scaley())
                 height: Math.round(140*base.scaley())
                 text: "OK"
                 background: "#ffffff"
@@ -95,8 +112,8 @@ Item {
                 }
             }
             MButton {
-                y: Math.round(220*base.scalex())
                 x: Math.round(180*base.scalex())
+                y: Math.round(220*base.scaley())
                 height: Math.round(140*base.scaley())
                 text: base.trans(112)
                 background: "#ffffff"
@@ -108,8 +125,8 @@ Item {
                 }
             }
             MButton {
-                y: Math.round(220*base.scalex())
                 x: Math.round(580*base.scalex())
+                y: Math.round(220*base.scaley())
                 height: Math.round(140*base.scaley())
                 text: base.trans(113)
                 background: "#ffffff"

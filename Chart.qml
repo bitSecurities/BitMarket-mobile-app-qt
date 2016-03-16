@@ -37,63 +37,57 @@ Frame {
         }
     }
 */
+    onClear: {
+        timeframe.view.currentIndex=0
+        timeframe.view.currentIndex=1
+        base.loadLastParallel()
+        refresh()
+    }
+
     onRefresh: {
-        base.loadLast()
         chart.update()
         if (chart.rotation==0)
         {
             if (timeframe.name==="1 m") range.text="40 m"
-            else if (timeframe.name==="4 m") range.text="2 h 20 m"
-            else if (timeframe.name==="16 m") range.text="9 h 20 m"
+            else if (timeframe.name==="4 m") range.text="2 h 40 m"
+            else if (timeframe.name==="5 m") range.text="3 h 20 m"
+            else if (timeframe.name==="15 m") range.text="10 h"
+            else if (timeframe.name==="16 m") range.text="10 h 40 m"
+            else if (timeframe.name==="1 h") range.text="1 d 16 h"
             else if (timeframe.name==="2 h") range.text="3 d 8 h"
             else if (timeframe.name==="8 h") range.text="13 d 8 h"
+            else if (timeframe.name==="12 h") range.text="20 d"
             else if (timeframe.name==="1 d") range.text="40 d"
             else if (timeframe.name==="2 d") range.text="80 d"
             else if (timeframe.name==="4 d") range.text="160 d"
+            else if (timeframe.name==="1 w") range.text="40 w"
+            else if (timeframe.name==="1 M") range.text="2 y 4 M"
         }else
         {
             if (timeframe.name==="1 m") range.text="1 h"
             else if (timeframe.name==="4 m") range.text="4 h"
+            else if (timeframe.name==="5 m") range.text="5 h"
+            else if (timeframe.name==="15 m") range.text="15 h"
             else if (timeframe.name==="16 m") range.text="16 h"
-            else if (timeframe.name==="2 h") range.text="5 d"
+            else if (timeframe.name==="1 h") range.text="5 d"
+            else if (timeframe.name==="2 h") range.text="10 d"
             else if (timeframe.name==="8 h") range.text="20 d"
+            else if (timeframe.name==="12 h") range.text="30 d"
             else if (timeframe.name==="1 d") range.text="60 d"
             else if (timeframe.name==="2 d") range.text="120 d"
             else if (timeframe.name==="4 d") range.text="240 d"
+            else if (timeframe.name==="1 w") range.text="60 w"
+            else if (timeframe.name==="1 M") range.text="5 y"
         }
+        if (timeframe.name===base.trans(119)) range.text=base.trans(119)
     }
 
     onUpdate: {
         refresh()
     }
 
-    ListModel {
-        id: modeltimeframes
-
-        ListElement {
-            name: "1 m"
-        }
-        ListElement {
-            name: "4 m"
-        }
-        ListElement {
-            name: "16 m"
-        }
-        ListElement {
-            name: "2 h"
-        }
-        ListElement {
-            name: "8 h"
-        }
-        ListElement {
-            name: "1 d"
-        }
-        ListElement {
-            name: "2 d"
-        }
-        ListElement {
-            name: "4 d"
-        }
+    onNewdata: {
+        refresh()
     }
 
     MButton
@@ -169,7 +163,9 @@ Frame {
     }
 
     Component.onCompleted: {
-        chart.update()
         base.changeTimeFrame("4 m")
+//        base.changeTimeFrame("Głębokość")
+        clear()
+        chart.update()
     }
 }

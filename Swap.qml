@@ -78,22 +78,49 @@ Frame {
         }
     }
 
-    Text
+    Item
     {
         id: info
-        x:Math.round(20*base.scalex())
-        y:Math.round(800*base.scaley())
-        width: Math.round(base.getWidth()-40*base.scalex())
-        text: base.trans(84)
-        font.pixelSize: Math.round(35*base.scalex())
-        horizontalAlignment: Text.AlignHCenter
         visible: false
+
+        Rectangle
+        {
+            id: background
+
+            width: base.getWidth()
+            height: base.getHeight()
+            color: "#41bb19"
+        }
+
+        Image
+        {
+            id: img
+
+            x: Math.round(112*base.scalex())
+            y: Math.round(500*base.scaley())
+            z: 11
+            source: (ex.name==="Bitmarket")?"qrc:///images/bitmarket_login.png":"qrc:///images/bitmaszyna_login.png"
+            width: Math.round(831*base.scalex())
+            height: Math.round(816*base.scaley())
+        }
+
+        MText
+        {
+            x:Math.round(20*base.scalex())
+            y:Math.round(1400*base.scaley())
+            width: Math.round(base.getWidth()-40*base.scalex())
+            text: base.trans(84)
+            font.pixelSize: Math.round(40*base.scalex())
+            horizontalAlignment: Text.AlignHCenter
+            bcolor: "#41bb1a"
+            tcolor: "#ffffff"
+            readOnly: true
+        }
     }
 
     Login {
         id: loginField
-        x: Math.round(370*base.scalex())
-        y: Math.round(600*base.scaley())
+        img.visible: true
         button.onClicked: {
             pass=loginField.text
             login()

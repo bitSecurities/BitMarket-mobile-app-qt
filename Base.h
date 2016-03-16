@@ -40,10 +40,13 @@ using namespace std;
 #define LIVESERVER
 //#define DEBUG
 
+#define VERSION string("1.6")
+
 #define ARMED
 
-//#define DESKTOP
-//#define ANDROID
+#define DESKTOPVERSION 0
+#define ANDROIDVERSION 1
+#define IPHONEVERSION 2
 
 #define MAXROWS 50
 #define MAXRETRY 3
@@ -75,13 +78,16 @@ using namespace std;
 #define ORDER 11
 #define HISTORY 12
 #define ORDERTYPE 13
+#define DEPOSITCURRENCIES 14
+#define WITHDRAWALACCOUNTS 15
+#define TIMEFRAMES 16
 
 #define MENUITEMSCOUNT 12
 
 #define ENGLISH 0
 #define POLISH 1
 
-#define MAXMODELS 14
+#define MAXMODELS 17
 
 #define SATO 100000000
 
@@ -131,6 +137,12 @@ public:
     QString format(double);
 };
 
+class Depth
+{
+public:
+    double value,price;
+};
+
 class Position:public Offer
 {
 public:
@@ -171,6 +183,7 @@ class Currency
 public:
     string name;
     int type;
+    bool deposit;
 };
 
 class Swap
@@ -185,6 +198,13 @@ class Deposit
 public:
     string currency,bank_name,pay_to,acc_num,swift_code,transfer_title;
 };
+
+class WithdrawalAccount
+{
+public:
+    string account,name;
+};
+
 
 class Alert
 {
@@ -235,6 +255,8 @@ public:
     vector<Position> positions;
     vector<Swap> swaps;
     vector<Deposit> deposits;
+    vector<WithdrawalAccount> withdrawalaccounts[MAXCURR];
+    int withdrawalcurrency;
     Deposit currentDeposit;
     CURLcode curlcode;
     CURL *curl;
@@ -292,7 +314,7 @@ int64_t getctime();
 inline bool is_base64(unsigned char c);
 string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 string base64_decode(std::string const& encoded_string);
-QString to_stringl(long l);
+QString to_stringl(long long l);
 QString to_stringd(double d);
 QString to_stringp(double d);
 QString to_stringd2(double d);

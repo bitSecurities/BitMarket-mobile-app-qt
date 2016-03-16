@@ -35,6 +35,7 @@ extern BaseData *base;
 #ifdef LIVESERVER
 #define BITMARKETURL string("https://www.bitmarket.pl/")
 #else
+
 #endif
 
 Bitmarket::Bitmarket() {
@@ -49,6 +50,7 @@ Bitmarket::Bitmarket() {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(curl, CURLOPT_USERPWD, "siteuser:123enterhere");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, ("BitKom-MobileApp/"+VERSION).c_str());
     bid=0.0;
     ask=0.0;
     logged=false;
@@ -57,19 +59,23 @@ Bitmarket::Bitmarket() {
     profit=0.0;
     profitPercentage=0.0;
     value=0.0;
-    currentTables=new Tables();    
+    currentTables=new Tables();
     Currency c;
     c.name="PLN";
     c.type=PLN;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="EUR";
     c.type=EUR;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="BTC";
     c.type=BTC;
+    c.deposit=true;
     currencies.push_back(c);
     c.name="LTC";
     c.type=LTC;
+    c.deposit=true;
     currencies.push_back(c);
     key="";
     secret="";
@@ -154,7 +160,6 @@ long Bitmarket::api(string post,string method)
     curl_easy_setopt(curl, CURLOPT_POST, 1);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) Gecko/20100101 Firefox/40.0");
     hed="API-Key: "+string(key);
     headers = curl_slist_append(headers, hed.c_str());
     hed="API-Hash: "+signature(post);
@@ -174,7 +179,7 @@ bool Bitmarket::makeApiCall(string method,struct json_object **json,string post)
         {
             lasterror="Not a json file";
             logerror();
-            log(string(chunk.memory)+"\n");        
+            log(string(chunk.memory)+"\n");
             return(false);
         }
 #ifdef DEBUG
@@ -184,7 +189,7 @@ bool Bitmarket::makeApiCall(string method,struct json_object **json,string post)
     }
     else {
         lasterror=name+" "+method+": "+curl_easy_strerror(curlcode);
-        logerror();          
+        logerror();
         return(false);
     }
 }
@@ -312,6 +317,9 @@ bool Bitmarket::marketChart(string market,long,long,long interval)
     curl_easy_setopt(curl, CURLOPT_URL, (string(BITMARKETURL)+"/graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString()).c_str());
     curl_easy_setopt(curl, CURLOPT_POST, 0);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, 0);
+#ifdef DEBUG
+    log((string(BITMARKETURL)+"/graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString())+"\n");
+#endif
     curlcode=curl_easy_perform(curl);
     if (chunk.size>0)
     {
@@ -323,6 +331,7 @@ bool Bitmarket::marketChart(string market,long,long,long interval)
             return(false);
         }
         //log(string(chunk.memory)+"\n");
+        base->swieczki.clear();
         arr=json_object_get_array(json);
         for(i=0;i<arr->length;i++)
         {
@@ -529,7 +538,14 @@ bool Bitmarket::deposit(const string& currency)
     curl_mutex.lock();
     if (makeApiCall("deposit",&json,"currency="+currency))
     {
-        if (!fetchData(&json,&jtmp)) return(false);
+        if (!fetchData(&json,&jtmp)) {
+            d.acc_num=lasterror;
+            d.bank_name="Error";
+            d.currency=currency;
+            deposits.push_back(d);
+            currentDeposit=d;
+            return(false);
+        }
         d.acc_num=json_object_get_string(jtmp);
         d.currency=currency;
         deposits.push_back(d);
@@ -537,6 +553,13 @@ bool Bitmarket::deposit(const string& currency)
         curl_mutex.unlock();
         json_object_put(json);
         return(true);
+    }else
+    {
+        d.acc_num=lasterror;
+        d.bank_name="Error";
+        d.currency=currency;
+        deposits.push_back(d);
+        currentDeposit=d;
     }
     curl_mutex.unlock();
     return(false);
@@ -623,6 +646,7 @@ bool Bitmarket::getdepth(string market,Tables& tables)
             offer.amount=json_object_get_double((struct json_object *)array_list_get_idx(arr2,1));
             offer.sumLower=sum;
             sum+=offer.amount*offer.price;
+            offer.sum=sum;
             tables.asks.push_back(offer);
         }
         json_object_put(json);
