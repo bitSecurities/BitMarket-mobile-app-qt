@@ -27,7 +27,6 @@ extern void log(string s);
 extern BaseData *base;
 
 #define BITMASZYNAURL "https://bitmaszyna.pl/api/"
-//#define BITMASZYNAURL "https://192.168.1.100:10443/api/"
 
 #ifdef IPHONE
 void BN_zero_ex(BIGNUM *)
