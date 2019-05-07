@@ -25,6 +25,7 @@ import QtQuick.Controls.Styles 1.3
 TextField {
     property string bcolor;
     property string tcolor;
+    property string mtext;
 
     id: text
     x: 0

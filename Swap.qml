@@ -24,10 +24,16 @@ import QtQuick.Controls.Styles 1.3
 import QtQuick.Dialogs 1.1
 
 Frame {
+    property string apiFunction
     id: swapFrame
+    property bool get
 
     onRefresh: {
-        if (base.isLogged()) base.swapList(swapcurrency.name)
+        if ((base.isLogged())&&(get==true)) {
+            apiFunction="swapList"
+            base.swapList(swapcurrency.name)
+            get=false
+        }
         if (ex.name==="Bitmaszyna")
         {
             loginField.visible=false
@@ -45,29 +51,48 @@ Frame {
     }
 
     onAccepted: {
-        if (!base.swapClose(swapcurrency.name,swaptable.lastTid))
+        apiFunction="swapClose"
+        base.swapClose(swapcurrency.name,swaptable.lastTid)
+        refresh()
+    }
+
+    function loginSuccess()
+    {        
+        loginField.visible=false
+        swapsFrame.visible=true
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        if (apiFunction=="swapList") get=true
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
+    }
+
+    function apiSuccess()
+    {
+        if (apiFunction=="swapList")
         {
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
+            base.emitOpenSwapsRefresh()
+        }else if ((apiFunction=="swapOpen")||(apiFunction=="swapClose"))
+        {
+            apiFunction="swapList"
+            base.swapList(swapcurrency.name)
         }
         refresh()
     }
 
-    function makeLogin()
+    function apiFailed()
     {
-        if (base.login(pass)) {
-            loginField.visible=false
-            swapsFrame.visible=true
-            refresh()
-        }else {
-            refresh()
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
     }
 
     Component.onCompleted: {
+        get=true
         refresh()
     }
 
@@ -171,6 +196,7 @@ Frame {
             y: Math.round(800*base.scaley())
             text: base.trans(12)
             onClicked: {
+                apiFunction="swapOpen"
                 if (!base.swapOpen(swapcurrency.name,price.text,amount.text)) showError()
                 refresh()
             }

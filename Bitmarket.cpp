@@ -35,7 +35,7 @@ extern BaseData *base;
 #ifdef LIVESERVER
 #define BITMARKETURL string("https://www.bitmarket.pl/")
 #else
-
+#define BITMARKETURL string("https://sec-m039dnu.bitmarket.pl/")
 #endif
 
 Bitmarket::Bitmarket() {
@@ -50,7 +50,7 @@ Bitmarket::Bitmarket() {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(curl, CURLOPT_USERPWD, "siteuser:123enterhere");
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, ("BitKom-MobileApp/"+VERSION).c_str());
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, ("BitmarketTrader-MobileApp/"+VERSION).c_str());
     bid=0.0;
     ask=0.0;
     logged=false;
@@ -77,8 +77,20 @@ Bitmarket::Bitmarket() {
     c.type=LTC;
     c.deposit=true;
     currencies.push_back(c);
+    c.name="BCC";
+    c.type=BCC;
+    c.deposit=true;
+    currencies.push_back(c);
+    c.name="BTG";
+    c.type=BTG;
+    c.deposit=true;
+    currencies.push_back(c);
+    c.name="XRP";
+    c.type=XRP;
+    c.deposit=true;
+    currencies.push_back(c);
     key="";
-    secret="";
+    secret="";    
 }
 
 Bitmarket::~Bitmarket() {
@@ -165,6 +177,7 @@ long Bitmarket::api(string post,string method)
     hed="API-Hash: "+signature(post);
     headers = curl_slist_append(headers, hed.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    sleep(5);
     curlcode=curl_easy_perform(curl);
     if (chunk.size<=0) log("Error connecting to bitmarket\n");
     curl_slist_free_all(headers);
@@ -314,11 +327,11 @@ bool Bitmarket::marketChart(string market,long,long,long interval)
     else if (interval==172800) timeframe="6m";
     else if (interval==345600) timeframe="1y";
     chunk.size=0;
-    curl_easy_setopt(curl, CURLOPT_URL, (string(BITMARKETURL)+"/graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString()).c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, (string(BITMARKETURL)+"graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString()).c_str());
     curl_easy_setopt(curl, CURLOPT_POST, 0);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, 0);
 #ifdef DEBUG
-    log((string(BITMARKETURL)+"/graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString())+"\n");
+    log((string(BITMARKETURL)+"graphs/"+market+"/"+timeframe+".json?t="+to_stringl(rand()).toStdString())+"\n");
 #endif
     curlcode=curl_easy_perform(curl);
     if (chunk.size>0)
@@ -378,6 +391,120 @@ bool Bitmarket::marginCancel(string market,string id,double amount)
 bool Bitmarket::marginModify(string market,string id,double rate,double rateProfit,double rateLoss)
 {
     return(makeSimpleApiCall("marginModify","market="+market+"&id="+id+"&rate="+to_stringp(rate).toStdString()+"&rateLoss="+to_stringp(rateLoss).toStdString()+"&rateProfit="+to_stringp(rateProfit).toStdString()));
+}
+
+bool Bitmarket::transfer(string tologin,string currency,double amount)
+{
+    return(makeSimpleApiCall("transfer","address="+tologin+"&currency="+currency+"&amount="+to_stringd(amount).toStdString()));
+}
+
+bool Bitmarket::withdrawals(int count,int start)
+{
+    struct json_object *json,*jtmp,*jtmp2,*jtmp3;
+    struct array_list *arr=0;
+    int i;
+
+    curl_mutex.lock();
+    historyTable.clear();
+    if (makeApiCall("withdrawals",&json,"count="+to_stringl(count).toStdString()+"&start="+to_stringl(start).toStdString()))
+    {
+        log(chunk.memory);
+        if (!fetchData(&json,&jtmp)) return(false);
+        json_object_object_get_ex(jtmp,"results",&jtmp3);
+        arr=json_object_get_array(jtmp3);
+        for(i=0;i<arr->length;i++)
+        {
+            History h;
+
+            jtmp2=(struct json_object *)array_list_get_idx(arr,i);
+            json_object_object_get_ex(jtmp2,"transaction_id",&jtmp3);
+            h.id=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"withdraw_type",&jtmp3);
+            h.type=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"received_in",&jtmp3);
+            h.receiver=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"currency",&jtmp3);
+            h.currency=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"amount",&jtmp3);
+            h.amount=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"time",&jtmp3);
+            h.time=json_object_get_int64(jtmp3);
+            historyTable.push_back(h);
+        }
+        json_object_put(json);
+        curl_mutex.unlock();
+        return(true);
+    }
+    curl_mutex.unlock();
+    return(false);
+}
+
+bool Bitmarket::transfers(int count,int start)
+{
+    struct json_object *json,*jtmp,*jtmp2,*jtmp3;
+    struct array_list *arr=0;
+    int i;
+
+    curl_mutex.lock();
+    historyTable.clear();
+    if (makeApiCall("transfers",&json,"count="+to_stringl(count).toStdString()+"&start="+to_stringl(start).toStdString()))
+    {
+        log(chunk.memory);
+        if (!fetchData(&json,&jtmp)) return(false);
+        json_object_object_get_ex(jtmp,"results",&jtmp3);
+        arr=json_object_get_array(jtmp3);
+        for(i=0;i<arr->length;i++)
+        {
+            History h;
+
+            jtmp2=(struct json_object *)array_list_get_idx(arr,i);
+            json_object_object_get_ex(jtmp2,"transaction_id",&jtmp3);
+            h.id=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"receiver",&jtmp3);
+            h.receiver=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"currency",&jtmp3);
+            h.currency=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"amount",&jtmp3);
+            h.amount=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"time",&jtmp3);
+            h.time=json_object_get_int64(jtmp3);
+            h.type="sent";
+            historyTable.push_back(h);
+        }
+        json_object_put(json);
+        //curl_mutex.unlock();
+        //return(true);
+    }
+    if (makeApiCall("transfersReceived",&json,"count="+to_stringl(count).toStdString()+"&start="+to_stringl(start).toStdString()))
+    {
+        log(chunk.memory);
+        if (!fetchData(&json,&jtmp)) return(false);
+        json_object_object_get_ex(jtmp,"results",&jtmp3);
+        arr=json_object_get_array(jtmp3);
+        for(i=0;i<arr->length;i++)
+        {
+            History h;
+
+            jtmp2=(struct json_object *)array_list_get_idx(arr,i);
+            json_object_object_get_ex(jtmp2,"transaction_id",&jtmp3);
+            h.id=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"sender",&jtmp3);
+            h.receiver=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"currency",&jtmp3);
+            h.currency=json_object_get_string(jtmp3);
+            json_object_object_get_ex(jtmp2,"amount",&jtmp3);
+            h.amount=json_object_get_double(jtmp3);
+            json_object_object_get_ex(jtmp2,"time",&jtmp3);
+            h.time=json_object_get_int64(jtmp3);
+            h.type="received";
+            historyTable.push_back(h);
+        }
+        json_object_put(json);
+        curl_mutex.unlock();
+        return(true);
+    }
+    curl_mutex.unlock();
+    return(false);
 }
 
 bool Bitmarket::marginOpen(string market,char type,double leverage,double amount,double price,double rateProfit,double rateLoss)
@@ -442,6 +569,7 @@ bool Bitmarket::history(string currency)
     historyTable.clear();
     if (makeApiCall("history",&json,"currency="+currency))
     {
+        log(chunk.memory);
         if (!fetchData(&json,&jtmp)) return(false);
         json_object_object_get_ex(jtmp,"results",&jtmp2);
         arr=json_object_get_array(jtmp2);
@@ -480,7 +608,7 @@ bool Bitmarket::swapClose(string currency,string id)
     return(makeSimpleApiCall("swapClose","currency="+currency+"&id="+id));
 }
 
-bool Bitmarket::withdraw(double amount,const string& currency,const string& address,const string& swift,const string& note,bool test,bool fast,double& fee)
+bool Bitmarket::withdraw(double amount,const string& currency,const string& address,const string& swift,const string& note,bool test,int type,double& fee)
 {
     string t;
     string method,post;
@@ -490,18 +618,24 @@ bool Bitmarket::withdraw(double amount,const string& currency,const string& addr
     else t="n";
     if (currency=="PLN")
     {
-        if (fast) {
+        if (type==WITHDRAW_FAST) {
             method="withdrawFiatFast";
             post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&account="+address+"&account2="+swift+"&test_only="+t+"&withdrawal_note="+note;
         }
-        else {
+        else if (type==WITHDRAW_NORMAL){
             method="withdrawFiat";
             post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&account="+address+"&account2="+swift+"&test_only="+t+"&withdrawal_note="+note;
+        }else if (type==WITHDRAW_ATM)
+        {
+            method="withdrawPLNPP";
+            post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&phone="+address+"&test_only="+t+"&withdrawal_note="+note;
         }
     }else if (currency=="EUR") {
         method="withdrawFiat";
         post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&account="+address+"&account2="+swift+"&test_only="+t+"&withdrawal_note="+note;
-
+    }else if (currency=="XRP") {
+        method="withdraw";
+        post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&address="+address+"&ripple_destination_tag="+swift;
     }else {
         method="withdraw";
         post="currency="+currency+"&amount="+to_stringd(amount).toStdString()+"&address="+address;
@@ -665,28 +799,23 @@ bool Bitmarket::getfunds()
     if (makeApiCall("info",&json,""))
     {
         Deposit d;
+        vector<Currency>::iterator it;
 
         log(string(chunk.memory)+"\n");
         if(!fetchData(&json,&jtmp)) return(false);
         json_object_object_get_ex(jtmp,"balances",&jtmp2);
         json_object_object_get_ex(jtmp2,"available",&jtmp3);
-        json_object_object_get_ex(jtmp3,"PLN",&jtmp4);
-        balance.balance[PLN]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"BTC",&jtmp4);
-        balance.balance[BTC]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"LTC",&jtmp4);
-        balance.balance[LTC]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"EUR",&jtmp4);
-        balance.balance[EUR]=json_object_get_double(jtmp4);
+        for(it=currencies.begin();it!=currencies.end();++it)
+        {
+            json_object_object_get_ex(jtmp3,(*it).name.c_str(),&jtmp4);
+            balance.balance[(*it).type]=json_object_get_double(jtmp4);
+        }
         json_object_object_get_ex(jtmp2,"blocked",&jtmp3);
-        json_object_object_get_ex(jtmp3,"PLN",&jtmp4);
-        balance.blocked[PLN]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"BTC",&jtmp4);
-        balance.blocked[BTC]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"LTC",&jtmp4);
-        balance.blocked[LTC]=json_object_get_double(jtmp4);
-        json_object_object_get_ex(jtmp3,"EUR",&jtmp4);
-        balance.blocked[EUR]=json_object_get_double(jtmp4);
+        for(it=currencies.begin();it!=currencies.end();++it)
+        {
+            json_object_object_get_ex(jtmp3,(*it).name.c_str(),&jtmp4);
+            balance.blocked[(*it).type]=json_object_get_double(jtmp4);
+        }
         json_object_object_get_ex(jtmp,"account",&jtmp2);
         json_object_object_get_ex(jtmp2,"commissionMaker",&jtmp3);
         fees.maker=json_object_get_double(jtmp3);

@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <curl/curl.h>
-#include <json/json.h>
+#include <json-c/json.h>
 #include <openssl/sha.h>
 #include <string>
 #include <sstream>
@@ -56,7 +56,7 @@ public:
     bool getopenorders(string market);
 	bool cancelorder(string id);
 	bool cancelall();
-    bool withdraw(double,const string&,const string&,const string&,const string&,bool,bool,double& fee);
+    bool withdraw(double,const string&,const string&,const string&,const string&,bool,int,double& fee);
     bool deposit(const string&);
     bool lasttrades(string);
     bool getticker(string,Ticker&);
@@ -68,6 +68,9 @@ public:
     bool swapList(string);
     bool swapOpen(string,double,double);
     bool swapClose(string,string);
+    bool transfer(string tologin,string currency,double amount);
+    bool transfers(int count,int start);
+    bool withdrawals(int count,int start);
     bool marketChart(string market);
     bool marginBalanceAdd(string market,double amount);
     bool marginBalanceRemove(string market,double amount);

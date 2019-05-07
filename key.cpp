@@ -9,6 +9,19 @@
 
 #include "key.h"
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(ANDROID) || defined(IPHONE)
+void ECDSA_SIG_get0(ECDSA_SIG *ecsig, const BIGNUM **r,const BIGNUM **s)
+{
+    *r=ecsig->r;
+    *s=ecsig->s;
+}
+void ECDSA_SIG_set0(ECDSA_SIG *ecsig,BIGNUM *r, BIGNUM *s)
+{
+    ecsig->r=r;
+    ecsig->s=s;
+}
+#endif
+
 // Generate a private key from just the secret parameter
 int EC_KEY_regenerate_key(EC_KEY *eckey, BIGNUM *priv_key)
 {
@@ -67,6 +80,8 @@ int ECDSA_SIG_recover_key_GFp(EC_KEY *eckey, ECDSA_SIG *ecsig, const unsigned ch
     EC_POINT *Q = NULL;
     BIGNUM *rr = NULL;
     BIGNUM *zero = NULL;
+    const BIGNUM *r = NULL;
+    const BIGNUM *s = NULL;
     int n = 0;
     int i = recid / 2;
 
@@ -78,7 +93,8 @@ int ECDSA_SIG_recover_key_GFp(EC_KEY *eckey, ECDSA_SIG *ecsig, const unsigned ch
     x = BN_CTX_get(ctx);
     if (!BN_copy(x, order)) { ret=-1; goto err; }
     if (!BN_mul_word(x, i)) { ret=-1; goto err; }
-    if (!BN_add(x, x, ecsig->r)) { ret=-1; goto err; }
+    ECDSA_SIG_get0(ecsig, &r, &s);
+    if (!BN_add(x, x, r)) { ret=-1; goto err; }
     field = BN_CTX_get(ctx);
     if (!EC_GROUP_get_curve_GFp(group, field, NULL, NULL, ctx)) { ret=-2; goto err; }
     if (BN_cmp(x, field) >= 0) { ret=0; goto err; }
@@ -100,9 +116,9 @@ int ECDSA_SIG_recover_key_GFp(EC_KEY *eckey, ECDSA_SIG *ecsig, const unsigned ch
     BN_zero(zero);
     if (!BN_mod_sub(e, zero, e, order, ctx)) { ret=-1; goto err; }
     rr = BN_CTX_get(ctx);
-    if (!BN_mod_inverse(rr, ecsig->r, order, ctx)) { ret=-1; goto err; }
+    if (!BN_mod_inverse(rr, r, order, ctx)) { ret=-1; goto err; }
     sor = BN_CTX_get(ctx);
-    if (!BN_mod_mul(sor, ecsig->s, rr, order, ctx)) { ret=-1; goto err; }
+    if (!BN_mod_mul(sor, s, rr, order, ctx)) { ret=-1; goto err; }
     eor = BN_CTX_get(ctx);
     if (!BN_mod_mul(eor, e, rr, order, ctx)) { ret=-1; goto err; }
     if (!EC_POINT_mul(group, Q, eor, R, sor, ctx)) { ret=-2; goto err; }
@@ -289,14 +305,17 @@ bool CKey::Sign(uint256 hash, std::vector<unsigned char>& vchSig)
 // 0x1D = second key with even y, 0x1E = second key with odd y
 bool CKey::SignCompact(uint256 hash, std::vector<unsigned char>& vchSig)
 {
+        const BIGNUM *sr,*ss;
+
     bool fOk = false;
     ECDSA_SIG *sig = ECDSA_do_sign((unsigned char*)&hash, sizeof(hash), pkey);
     if (sig==NULL)
         return false;
     vchSig.clear();
     vchSig.resize(65,0);
-    int nBitsR = BN_num_bits(sig->r);
-    int nBitsS = BN_num_bits(sig->s);
+    ECDSA_SIG_get0(sig,&sr,&ss);
+    int nBitsR = BN_num_bits(sr);
+    int nBitsS = BN_num_bits(ss);
     if (nBitsR <= 256 && nBitsS <= 256)
     {
         int nRecId = -1;
@@ -318,8 +337,9 @@ bool CKey::SignCompact(uint256 hash, std::vector<unsigned char>& vchSig)
             throw key_error("CKey::SignCompact() : unable to construct recoverable key");
 
         vchSig[0] = nRecId+27+(fCompressedPubKey ? 4 : 0);
-        BN_bn2bin(sig->r,&vchSig[33-(nBitsR+7)/8]);
-        BN_bn2bin(sig->s,&vchSig[65-(nBitsS+7)/8]);
+        ECDSA_SIG_get0(sig,&sr,&ss);
+        BN_bn2bin(sr,&vchSig[33-(nBitsR+7)/8]);
+        BN_bn2bin(ss,&vchSig[65-(nBitsS+7)/8]);
         fOk = true;
     }
     ECDSA_SIG_free(sig);
@@ -332,14 +352,19 @@ bool CKey::SignCompact(uint256 hash, std::vector<unsigned char>& vchSig)
 // (the signature is a valid signature of the given data for that key)
 bool CKey::SetCompactSignature(uint256 hash, const std::vector<unsigned char>& vchSig)
 {
+    BIGNUM *sr,*ss;
+
+    sr=BN_new();
+    ss=BN_new();
     if (vchSig.size() != 65)
         return false;
     int nV = vchSig[0];
     if (nV<27 || nV>=35)
         return false;
     ECDSA_SIG *sig = ECDSA_SIG_new();
-    BN_bin2bn(&vchSig[1],32,sig->r);
-    BN_bin2bn(&vchSig[33],32,sig->s);
+    BN_bin2bn(&vchSig[1],32,sr);
+    BN_bin2bn(&vchSig[33],32,ss);
+    ECDSA_SIG_set0(sig,sr,ss);
 
     EC_KEY_free(pkey);
     pkey = EC_KEY_new_by_curve_name(NID_secp256k1);

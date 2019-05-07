@@ -39,7 +39,7 @@ public:
     bool getopenorders(string market);
 	bool cancelorder(string id);
 	bool cancelall();
-    bool withdraw(double,const string&,const string&,const string&,const string&,bool,bool,double&);
+    bool withdraw(double,const string&,const string&,const string&,const string&,bool,int,double&);
     bool deposit(const string&);
     bool lasttrades(string);
     bool getticker(string,Ticker &);
@@ -51,6 +51,9 @@ public:
     bool swapList(string);
     bool swapOpen(string,double,double);
     bool swapClose(string,string);
+    bool transfer(string tologin,string currency,double amount);
+    bool transfers(int count,int start);
+    bool withdrawals(int count,int start);
     bool marketChart(string market,long,long,long);
     bool makeApiCall(string method,struct json_object **json,string post);
     void getError(struct json_object **json);

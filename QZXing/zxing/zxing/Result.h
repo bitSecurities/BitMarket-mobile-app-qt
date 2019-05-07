@@ -49,6 +49,7 @@ public:
   BarcodeFormat getBarcodeFormat() const;
 
   friend std::ostream& operator<<(std::ostream &out, Result& result);
+//  std::ostream& operator<<(std::ostream &out, Result& result);
 };
 
 }

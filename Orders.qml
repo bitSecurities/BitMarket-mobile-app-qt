@@ -25,21 +25,67 @@ import QtQuick.Controls.Styles 1.3
 
 Frame {
     property int selected
+    property bool got
+    property string apiFunction
 
     onRefresh:
     {
         if (base.isLogged()) {
             if (selected===0) {
-                base.getOpenOrders()
-                orderstable.visible=true
+                if (!got)
+                {
+                    base.getOpenOrders()
+                    got=true
+                }else
+                {
+                    orderstable.visible=true
+                    historytable.visible=false
+                    withdrawalstable.visible=false
+                }
+            }
+            else if (selected===modelordertype.rowCount()-2)
+            {
+                orderstable.visible=false
                 historytable.visible=false
+                withdrawalstable.visible=true
             }
             else {
-                base.getHistory(selected-1)
+                //base.getHistory(selected-1)
                 orderstable.visible=false
                 historytable.visible=true
+                withdrawalstable.visible=false
             }
         }
+    }
+
+    function apiSuccess()
+    {
+        if (apiFunction=="cancel")
+        {
+            apiFunction="orders"
+            got=false
+            refresh()
+        }
+        else if (apiFunction=="history")
+        {
+            apiFunction=""
+            base.emitHistoryRefresh();
+            refresh()
+        }
+        else if (selected===0) {
+            base.emitRefresh()
+            orderstable.visible=true
+            orderstable.update()
+            historytable.visible=false
+            withdrawalstable.visible=false
+        }
+    }
+
+    function apiFailed()
+    {
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
     }
 
     onUpdate:
@@ -54,18 +100,14 @@ Frame {
         refresh()
     }
 
-    MessageDialog {
+    MDialog {
         id: cancelConfirmation
         title: base.trans(25)
         text: ""
-        standardButtons: StandardButton.Ok | StandardButton.Cancel
         onAccepted: {
             console.log("Accepted")
-            if (!base.cancelOrder(orderstable.lastTid))
-            {
-                errorDialog.text=base.getLastError()
-                errorDialog.visible=true
-            }
+            apiFunction="cancel";
+            base.cancelOrder(orderstable.lastTid)
             refresh()
         }
         onRejected: {
@@ -74,18 +116,24 @@ Frame {
         visible: false
     }
 
-    function makeLogin()
+    function loginSuccess()
     {
-        if (base.login(pass)) {
-            loginField.visible=false
-            ordersFrame.visible=true
-            refresh()
-        }else {
-            refresh()
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        loginField.visible=false
+        ordersFrame.visible=true
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        refresh()
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+    }
+
+    Component.onCompleted:
+    {
+        got=false
     }
 
     Login {
@@ -103,15 +151,24 @@ Frame {
         visible: base.isLogged()
 
         MListButton {
-            x: 420*base.scalex()
+            x: 330*base.scalex()
             y: 250*base.scaley()
             z: 10
+            width: 440*base.scalex()
+            popup.itemWidth: 440*base.scalex()
             id: ranges
             model: modelordertype
             inner.border.width: 0
             inner.radius: 0
             onNameChanged: {
                 selected=view.currentIndex
+                if (base.isLogged()) {
+                    if(selected!==0) {
+                        apiFunction="history"
+                        base.getHistory(selected-1)
+                    }
+                    refresh();
+                }
             }
         }
 
@@ -214,7 +271,50 @@ Frame {
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: (styleData.role==="type")?Text.AlignHCenter:Text.AlignRight
-                    text: ((styleData.value==="bin")? "":styleData.value)+((styleData.role==="type")?":":"")
+                    text: ((styleData.value==="bin")? "":styleData.value)
+                    font.pixelSize: Math.round(30*base.scalex())
+                    color: "#000000"
+                } // text
+            } // Item
+            selectionMode: SelectionMode.NoSelection
+        }
+
+        TableView {
+            id: withdrawalstable
+
+            property bool norec : false
+            property string lastTid
+
+            visible: false
+            headerVisible: false
+            width: base.getWidth()
+            height: Math.round(1300*base.scaley())
+            y: Math.round(400*base.scaley())
+            TableViewColumn {role: "time"; width: 240*base.scalex() }
+            TableViewColumn {role: "type"; width: 400*base.scalex() }
+            TableViewColumn {role: "amount"; width: 260*base.scalex()   }
+            TableViewColumn {role: "price"; width: 100*base.scalex() }
+            model: modelhistory
+            style: TableViewStyle {
+                frame: Rectangle {
+                    border{
+                        width: 0
+                    }
+                }
+            }
+            rowDelegate: Rectangle {
+                height: Math.round(160*base.scaley())
+                color: (styleData.row%2==0)? "#e9f3fd" : "white"
+            }
+            itemDelegate: Item {
+                Text {
+                    width: parent.width
+                    height: parent.height/2
+                    y: (styleData.role==="type")?parent.height/2:0
+                    x: (styleData.role==="type")?-230*base.scalex():0
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: (styleData.role==="type")?Text.AlignHLeft:Text.AlignRight
+                    text: styleData.value
                     font.pixelSize: Math.round(30*base.scalex())
                     color: "#000000"
                 } // text

@@ -26,8 +26,8 @@ Frame {
     onRefresh: {
         if (base.isLogged()) {
             details.text=base.getDeposit()
-            if ((currencies.name==="BTC")||(currencies.name==="LTC")) details.horizontalAlignment=Text.AlignHCenter
-            else details.horizontalAlignment=Text.AlignLeft
+            if ((currencies.name==="PLN")||(currencies.name==="EUR")) details.horizontalAlignment=Text.AlignLeft
+            else details.horizontalAlignment=Text.AlignHCenter
             generateQR()
         }
     }
@@ -49,31 +49,47 @@ Frame {
     {
         var add
 
-        add=""
+        add="-"
         if (currencies.name==="BTC") add="bitcoin:"
         else if (currencies.name==="LTC") add="litecoin:"
-        if ((add!=="")&&(base.getDeposit().indexOf("Error") !== 0)) {
+        else if (currencies.name==="BCC") add="bitcoincash:"
+        else if (currencies.name==="BTG") add="bitcoingold:"
+        else if (currencies.name==="DOGE") add="doge:"
+        else if (currencies.name==="LSK") add="lisk:"
+        else if (currencies.name==="XRP") add=""
+        if ((add!=="-")&&(base.getDeposit().indexOf("Error") !== 0)) {
             qrcode.visible=true
-            qrcode.value=add+base.getDeposit()
+            qrcode.value=add+base.getDepositAccount()
         }
         else qrcode.visible=false;
     }
 
-    function makeLogin()
+    function loginSuccess()
     {
-        if (base.login(pass)) {
-            loginField.visible=false
-            depositFrame.visible=true
-            base.refreshCurrencies()
-            currencies.popup.ref()
-            base.deposit(currencies.name)
-            refresh()
-        }else {
-            refresh()
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        loginField.visible=false
+        depositFrame.visible=true
+        base.refreshCurrencies()
+        currencies.popup.ref()
+        base.deposit(currencies.name)
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
+    }
+
+    function apiSuccess()
+    {
+        refresh()
+    }
+
+    function apiFailed()
+    {
+        refresh()
     }
 
     Login {
@@ -119,8 +135,8 @@ Frame {
                 anchors.fill: parent
                 onClicked:
                 {
-                    if ((currencies.name==="BTC")||(currencies.name==="LTC")) messages.displayMessage(base.trans(127));
-                    else messages.displayMessage(base.trans(126));
+                    if ((currencies.name==="PLN")||(currencies.name==="EUR")) messages.displayMessage(base.trans(126));
+                    else messages.displayMessage(base.trans(127));
                     base.copyAccount();
                 }
             }
@@ -129,7 +145,7 @@ Frame {
         QRCode {
             id: qrcode
             x: Math.round(190*base.scalex())
-            y: Math.round(750*base.scaley())
+            y: Math.round(870*base.scaley())
             z: -1
             width : Math.round(700*base.scalex())
             height : Math.round(750*base.scaley())

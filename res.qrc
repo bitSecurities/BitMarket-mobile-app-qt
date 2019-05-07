@@ -59,5 +59,7 @@
         <file>images/bitmaszyna_login.png</file>
         <file>images/bitmarket_login.png</file>
         <file>WithdrawCam.qml</file>
+        <file>Loading.qml</file>
+        <file>images/loading.gif</file>
     </qresource>
 </RCC>

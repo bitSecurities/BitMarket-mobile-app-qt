@@ -27,7 +27,7 @@
 #include <openssl/hmac.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <json/json.h>
+#include <json-c/json.h>
 #include <curl/curl.h>
 #include <vector>
 #include <list>
@@ -40,7 +40,7 @@ using namespace std;
 #define LIVESERVER
 //#define DEBUG
 
-#define VERSION string("1.6")
+#define VERSION string("1.15")
 
 #define ARMED
 
@@ -62,6 +62,10 @@ using namespace std;
 #define FIRST 1
 #define SECOND 2
 
+#define WITHDRAW_NORMAL 0
+#define WITHDRAW_FAST 1
+#define WITHDRAW_ATM 2
+
 #define BID 0
 #define BUY 0
 #define ASK 1
@@ -79,15 +83,20 @@ using namespace std;
 #define HISTORY 12
 #define ORDERTYPE 13
 #define DEPOSITCURRENCIES 14
-#define WITHDRAWALACCOUNTS 15
-#define TIMEFRAMES 16
+#define WITHDRAWCURRENCIES 15
+#define WITHDRAWALACCOUNTS 16
+#define TIMEFRAMES 17
+
+#define OHISTORY 0
+#define INTERNALTRANSFERS 1
+#define WITHDRAWALS 2
 
 #define MENUITEMSCOUNT 12
 
 #define ENGLISH 0
 #define POLISH 1
 
-#define MAXMODELS 17
+#define MAXMODELS 18
 
 #define SATO 100000000
 
@@ -99,8 +108,26 @@ using namespace std;
 #define LTC 3
 #define KBM 4
 #define LBTC 5
+#define BCC 6
+#define BTG 7
+#define DOGE 8
+#define LSK 9
+#define XRP 10
+#define MAXCURR 11
 
-#define MAXCURR 6
+static const QString curnames[] = {
+    "PLN",
+    "EUR",
+    "BTC",
+    "LTC",
+    "KBM",
+    "LBTC",
+    "BCC",
+    "BTG",
+    "DOGE",
+    "LSK",
+    "XRP"
+};
 
 #define MAXTRANS 200
 
@@ -205,6 +232,13 @@ public:
     string account,name;
 };
 
+class WithdrawDetails
+{
+public:
+    double amount;
+    QString currency,address,swift,note;
+    int type;
+};
 
 class Alert
 {
@@ -230,7 +264,7 @@ public:
 class History
 {
 public:
-    string id,type,currency;
+    string id,type,currency,receiver,transaction_id;
     double amount,rate,commission;
     long long time;
 };
@@ -273,13 +307,16 @@ public:
     virtual bool cancelorder(string id)=0;
 	virtual bool cancelall()=0;
     virtual bool tradepair(double price,double amount,char type,string market)=0;
-    virtual bool withdraw(double,const string&,const string&,const string&,const string&,bool,bool,double&)=0;
+    virtual bool withdraw(double,const string&,const string&,const string&,const string&,bool,int,double&)=0;
     virtual bool deposit(const string&)=0;
     virtual bool lasttrades(string)=0;
     virtual bool marginList(string market)=0;
     virtual bool marginOpen(string market,char type,double leverage,double amount,double rate,double rateLoss,double rateProfit)=0;
     virtual bool marginClose(string market,string id,double amount)=0;
     virtual bool marginCancel(string market,string id,double amount)=0;
+    virtual bool transfer(string tologin,string currency,double amount)=0;
+    virtual bool transfers(int count,int start)=0;
+    virtual bool withdrawals(int count,int start)=0;
     virtual bool marginModify(string market,string id,double rate,double rateProfit,double rateLoss)=0;
     virtual bool swapList(string)=0;
     virtual bool swapOpen(string,double,double)=0;

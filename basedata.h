@@ -55,8 +55,10 @@ public:
     QObject *msgObject,*newDataObject;
     QMutex mutex_depth,mutex_list;
     QQuickWindow *window;
-    int ileswieczek,podzial;
-    bool stopemit;
+    int ileswieczek,podzial,ordertype;
+    bool stopemit,locked;
+    QString depositTxt;
+    QApplication *app;
 
     BaseData();
     double coma(QString);
@@ -70,8 +72,8 @@ public:
     Q_INVOKABLE int getHeight();
     Q_INVOKABLE double scalex();
     Q_INVOKABLE double scaley();
-    Q_INVOKABLE void changeEx(QString);
-    Q_INVOKABLE void changeMarket(QString);
+    Q_INVOKABLE bool changeEx(QString);
+    Q_INVOKABLE bool changeMarket(QString);
     Q_INVOKABLE QString buyPrice(int);
     Q_INVOKABLE QString buyAmount(int);
     Q_INVOKABLE QString sellPrice(int);
@@ -124,8 +126,8 @@ public:
     Q_INVOKABLE bool checkWithdrawalPass(QString);
     Q_INVOKABLE bool isEncrypted();\
     Q_INVOKABLE bool deposit(QString);
-    Q_INVOKABLE bool withdraw(double amount,QString currency,QString address,QString swift,QString note,bool fast);
-    Q_INVOKABLE bool testWithdraw(double amount,QString currency,QString address,QString swift,QString note,bool fast);
+    Q_INVOKABLE bool withdraw(double amount,QString currency,QString address,QString swift,QString note,int type);
+    Q_INVOKABLE bool testWithdraw(double amount,QString currency,QString address,QString swift,QString note,int type);
     Q_INVOKABLE double getLastFee();
     Q_INVOKABLE QString getDeposit();
     Q_INVOKABLE void changeRange(QString);
@@ -159,6 +161,44 @@ public:
     Q_INVOKABLE int stringtocur(QString s);
     Q_INVOKABLE void changeLocale();
     Q_INVOKABLE void copyAccount();
+    Q_INVOKABLE bool transfer(QString toLogin,QString currency,double amount);
+    Q_INVOKABLE void showLoading();
+    Q_INVOKABLE void hideLoading();
+    Q_INVOKABLE QString getDepositAccount();
+
+    bool trylock();
+    void loginParallel();
+    Q_INVOKABLE void unlock();
+    void executeParallel(QString price,QString amount,bool type);
+    void notifyUi(bool ret);
+    bool getFundsParallel(bool lock);
+    Q_INVOKABLE bool getFundsNoLock();
+    bool getOpenOrdersParallel();
+    Q_INVOKABLE void emitRefresh();
+    bool cancelOrderParallel(QString id);
+    bool getHistoryParallel(int n);
+    Q_INVOKABLE void emitHistoryRefresh();
+    bool depositParallel(QString currency);
+    bool getChartParallel(string cmarket,long sstart,long send,long timeframe);
+    bool swapCloseParallel(QString currency,QString id);
+    bool swapOpenParallel(QString currency,QString price,QString amount);
+    Q_INVOKABLE void emitOpenSwapsRefresh();
+    bool swapListParallel(QString currency);
+    bool marginBalanceAddParallel(QString amount);
+    Q_INVOKABLE void emitOpenPositionsRefresh();
+    bool marginListParallel();
+    bool executeLeverageParallel(Position p);
+    bool marginBalanceRemoveParallel(QString amount);
+    bool marginModifyParallel(QString id,double rate,double takeprofit,double stoploss);
+    bool marginCancelParallel(QString id,double amount);
+    bool marginCloseParallel(QString id,double amount);
+    void changeMarketParallel(QString s,bool notify);
+    Q_INVOKABLE void emitAllRefresh();
+    Q_INVOKABLE void changeExParallel(QString s,bool first);
+    Q_INVOKABLE void close();
+    bool transferParallel(QString toLogin,QString currency,double amount);
+    bool withdrawParallel(WithdrawDetails w);
+
 public slots:
     void onCompleted();
 signals:

@@ -46,15 +46,21 @@ Item
         refresh()
     }
 
+    function loginSuccess()
+    {
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
+    }
+
     function makeLogin() {
-        if (base.login(pass)) {
-            refresh()
-        }else {
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-            refresh()
-        }
+        base.login(pass)
     }
 
     onLogin: makeLogin()

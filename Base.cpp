@@ -101,24 +101,70 @@ int currency(string market,int k)
         if (k==FIRST) return(BTC);
         else return(PLN);
     }
+    else if (market=="BTCEUR")
+    {
+        if (k==FIRST) return(BTC);
+        else return(EUR);
+    }
     else if (market=="LTCPLN")
     {
         if (k==FIRST) return(LTC);
         else return(PLN);
     }
-    else if (market=="BTCEUR")
+    else if (market=="LTCEUR")
     {
-        if (k==FIRST) return(BTC);
+        if (k==FIRST) return(LTC);
         else return(EUR);
     }
     else if (market=="LTCBTC")
     {
         if (k==FIRST) return(LTC);
         else return(BTC);
-    }else if (market=="KBMBTC")
+    }
+    else if (market=="KBMBTC")
     {
         if (k==FIRST) return(KBM);
         else return(BTC);
+    }
+    else if (market=="BCCPLN")
+    {
+        if (k==FIRST) return(BCC);
+        else return(PLN);
+    }
+    else if (market=="BCCEUR")
+    {
+        if (k==FIRST) return(BCC);
+        else return(EUR);
+    }
+    else if (market=="BTGPLN")
+    {
+        if (k==FIRST) return(BTG);
+        else return(PLN);
+    }
+    else if (market=="BTGEUR")
+    {
+        if (k==FIRST) return(BTG);
+        else return(EUR);
+    }
+    else if (market=="DOGEPLN")
+    {
+        if (k==FIRST) return(DOGE);
+        else return(PLN);
+    }
+    else if (market=="LSKPLN")
+    {
+        if (k==FIRST) return(LSK);
+        else return(PLN);
+    }
+    else if (market=="XRPPLN")
+    {
+        if (k==FIRST) return(XRP);
+        else return(PLN);
+    }
+    else if (market=="XRPEUR")
+    {
+        if (k==FIRST) return(XRP);
+        else return(EUR);
     }
     return(0);
 }
@@ -331,14 +377,24 @@ hmac_sha512(const std::vector<unsigned char>& data,
     unsigned int len = EVP_MAX_MD_SIZE;
     std::vector<unsigned char> digest(len);
 
-    HMAC_CTX ctx;
-    HMAC_CTX_init(&ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(ANDROID) || defined(IPHONE)
+    HMAC_CTX *ctx;
+    ctx=(HMAC_CTX *)malloc(sizeof(HMAC_CTX));
+    HMAC_CTX_init(ctx);
+#else
+    HMAC_CTX *ctx;
+    ctx=HMAC_CTX_new();
+#endif
 
-    HMAC_Init_ex(&ctx, key.data(), key.size(), EVP_sha512(), NULL);
-    HMAC_Update(&ctx, data.data(), data.size());
-    HMAC_Final(&ctx, digest.data(), &len);
+    HMAC_Init_ex(ctx, key.data(), key.size(), EVP_sha512(), NULL);
+    HMAC_Update(ctx, data.data(), data.size());
+    HMAC_Final(ctx, digest.data(), &len);
 
-    HMAC_CTX_cleanup(&ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(ANDROID) || defined(IPHONE)
+    HMAC_CTX_cleanup(ctx);
+#else
+    HMAC_CTX_free(ctx);
+#endif
 
     return digest;
 }
@@ -350,14 +406,24 @@ hmac_sha256(const std::vector<unsigned char>& data,
     unsigned int len = 32;
     std::vector<unsigned char> digest(len);
 
-    HMAC_CTX ctx;
-    HMAC_CTX_init(&ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(ANDROID) || defined(IPHONE)
+    HMAC_CTX *ctx;
+    ctx=(HMAC_CTX *)malloc(sizeof(HMAC_CTX));
+    HMAC_CTX_init(ctx);
+#else
+    HMAC_CTX *ctx;
+    ctx=HMAC_CTX_new();
+#endif
 
-    HMAC_Init_ex(&ctx, key.data(), key.size(), EVP_sha256(), NULL);
-    HMAC_Update(&ctx, data.data(), data.size());
-    HMAC_Final(&ctx, digest.data(), &len);
+    HMAC_Init_ex(ctx, key.data(), key.size(), EVP_sha256(), NULL);
+    HMAC_Update(ctx, data.data(), data.size());
+    HMAC_Final(ctx, digest.data(), &len);
 
-    HMAC_CTX_cleanup(&ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(ANDROID) || defined(IPHONE)
+    HMAC_CTX_cleanup(ctx);
+#else
+    HMAC_CTX_free(ctx);
+#endif
 
     return digest;
 }

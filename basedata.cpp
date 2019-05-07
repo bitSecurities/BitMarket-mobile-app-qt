@@ -36,6 +36,7 @@
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#include <cmath>
 #ifdef IPHONE
 #include <math.h>
 #endif
@@ -73,12 +74,26 @@ BaseData::BaseData()
     e=new Bitmarket();
     e->markets.push_back("BTCPLN");
     e->marketsLong.push_back("BTC/PLN");
-    e->markets.push_back("LTCPLN");
-    e->marketsLong.push_back("LTC/PLN");
     e->markets.push_back("BTCEUR");
     e->marketsLong.push_back("BTC/EUR");
+    e->markets.push_back("LTCPLN");
+    e->marketsLong.push_back("LTC/PLN");
+    e->markets.push_back("LTCEUR");
+    e->marketsLong.push_back("LTC/EUR");
     e->markets.push_back("LTCBTC");
     e->marketsLong.push_back("LTC/BTC");
+    e->markets.push_back("BCCPLN");
+    e->marketsLong.push_back("BCC/PLN");
+    e->markets.push_back("BCCEUR");
+    e->marketsLong.push_back("BCC/EUR");
+    e->markets.push_back("BTGPLN");
+    e->marketsLong.push_back("BTG/PLN");
+    e->markets.push_back("BTGEUR");
+    e->marketsLong.push_back("BTG/EUR");
+    e->markets.push_back("XRPPLN");
+    e->marketsLong.push_back("XRP/PLN");
+    e->markets.push_back("XRPEUR");
+    e->marketsLong.push_back("XRP/EUR");
     exchanges.push_back(e);
     currentExchange=e;
     e=new Bitmaszyna();
@@ -86,6 +101,10 @@ BaseData::BaseData()
     e->marketsLong.push_back("BTC/PLN");
     e->markets.push_back("LTCPLN");
     e->marketsLong.push_back("LTC/PLN");
+    e->markets.push_back("DOGEPLN");
+    e->marketsLong.push_back("DOGE/PLN");
+    e->markets.push_back("LSKPLN");
+    e->marketsLong.push_back("LSK/PLN");
     e->markets.push_back("KBMBTC");
     e->marketsLong.push_back("KBM/BTC");
     exchanges.push_back(e);
@@ -96,8 +115,9 @@ BaseData::BaseData()
     currentLanguage=POLISH;
     encrypted=false;
     reverse=true;
+    locked=false;
 #ifdef DEBUG
-    //savekeys();
+    savekeys();
 #endif
     loadkeys();
     preparetrans();
@@ -154,6 +174,13 @@ BaseData::BaseData()
     //prepareChartData();
 }
 
+void BaseData::close()
+{
+    app->closeAllWindows();
+    app->exit(1);
+//    exit(1);
+}
+
 int BaseData::getVersion()
 {
 #ifdef ANDROID
@@ -198,16 +225,38 @@ void BaseData::saveAlerts(bool active,double bidabove,double bidbelow,double ask
     savekeys();
 }
 
-bool BaseData::getHistory(int n)
+bool BaseData::getHistoryParallel(int n)
 {
     bool ret;
 
-    ret=currentExchange->history(currentExchange->currencies[n].name);
-    if (ret)
-    {
-        emit(model[HISTORY]->layoutChanged());
+    if (n<(int)(currentExchange->currencies.size())) {
+        ret=currentExchange->history(currentExchange->currencies[n].name);
+        ordertype=OHISTORY;
     }
+    else if (n<(int)(currentExchange->currencies.size()+1)){
+        ret=currentExchange->withdrawals(100,0);
+        ordertype=WITHDRAWALS;
+    }else
+    {
+        ret=currentExchange->transfers(100,0);
+        ordertype=INTERNALTRANSFERS;
+    }
+    notifyUi(ret);
     return(ret);
+}
+
+void BaseData::emitHistoryRefresh()
+{
+    emit(model[HISTORY]->layoutChanged());
+}
+
+bool BaseData::getHistory(int n)
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::getHistoryParallel,n);
+    }else return(false);
+    return(true);
 }
 
 bool BaseData::getActive()
@@ -281,6 +330,15 @@ void BaseData::changeRange(QString name)
     emit(model[LASTTRADES]->layoutChanged());
 }
 
+bool BaseData::depositParallel(QString currency)
+{
+    bool ret;
+
+    ret=currentExchange->deposit(currency.toStdString());
+    notifyUi(ret);
+    return(ret);
+}
+
 bool BaseData::deposit(QString currency)
 {
     vector<Deposit>::iterator it;
@@ -296,22 +354,54 @@ bool BaseData::deposit(QString currency)
             break;
         }
     }
-    if (!found) return(currentExchange->deposit(currency.toStdString()));
+    if (!found) {
+        if (trylock())
+        {
+            QtConcurrent::run(this,&BaseData::depositParallel,currency);
+        }else return(false);
+    }
     return(true);
+}
+
+std::vector<std::string> explode(std::string const & s, char delim)
+{
+    std::vector<std::string> result;
+    std::istringstream iss(s);
+
+    for (std::string token; std::getline(iss, token, delim); )
+    {
+        result.push_back(std::move(token));
+    }
+
+    return result;
 }
 
 QString BaseData::getDeposit()
 {
-    if ((currentExchange->currentDeposit.currency=="BTC")||(currentExchange->currentDeposit.currency=="LTC")) {
-        if (currentExchange->currentDeposit.bank_name=="Error") return(QString("Error: ")+currentExchange->currentDeposit.acc_num.c_str());
-        else return(trans(110)+" "+currentExchange->currentDeposit.currency.c_str()+":<br><br><b>"+currentExchange->currentDeposit.acc_num.c_str()+"</b>");
-    }
-    else {
+    if ((currentExchange->currentDeposit.currency=="PLN")||(currentExchange->currentDeposit.currency=="EUR")) {
         QString s;
         s=trans(106)+": <b>"+QString(currentExchange->currentDeposit.acc_num.c_str())+"</b><br>"+trans(107)+": <b>"+currentExchange->currentDeposit.bank_name.c_str()+"</b><br>"+trans(108)+": <b>"+currentExchange->currentDeposit.pay_to.c_str()+"</b><br>"+trans(109)+": <b>"+currentExchange->currentDeposit.transfer_title.c_str()+"</b><br>";
         if (currentExchange->currentDeposit.currency=="EUR") s+=trans(78)+": <b>"+currentExchange->currentDeposit.swift_code.c_str()+"</b>";
         return(s);
     }
+    else {
+        if (currentExchange->currentDeposit.bank_name=="Error") return(QString("Error: ")+currentExchange->currentDeposit.acc_num.c_str());
+        else {
+            if (currentExchange->currentDeposit.currency=="XRP") {
+                auto v = explode(currentExchange->currentDeposit.acc_num, '|');
+                return(trans(110)+" "+currentExchange->currentDeposit.currency.c_str()+":<br><br><b>"+v[0].c_str()+"</b><br/><br/>"+trans(143)+":<br/><br/><b>"+v[1].c_str()+"</b>");
+            }
+            else return(trans(110)+" "+currentExchange->currentDeposit.currency.c_str()+":<br><br><b>"+currentExchange->currentDeposit.acc_num.c_str()+"</b>");
+        }
+    }
+}
+
+QString BaseData::getDepositAccount()
+{
+    if (currentExchange->currentDeposit.currency=="XRP") {
+        auto v = explode(currentExchange->currentDeposit.acc_num, '|');
+        return(v[0].c_str());
+    }else return(currentExchange->currentDeposit.acc_num.c_str());
 }
 
 void BaseData::copyAccount()
@@ -319,14 +409,34 @@ void BaseData::copyAccount()
     QApplication::clipboard()->setText(QString(currentExchange->currentDeposit.acc_num.c_str()));
 }
 
-bool BaseData::withdraw(double amount,QString currency,QString address,QString swift,QString note,bool fast)
+bool BaseData::withdrawParallel(WithdrawDetails w)
 {
-    return(currentExchange->withdraw(amount,currency.toStdString(),address.toStdString(),swift.toStdString(),note.toStdString(),false,fast,lastFee));
+    bool ret;
+
+    ret=currentExchange->withdraw(w.amount,w.currency.toStdString(),w.address.toStdString(),w.swift.toStdString(),w.note.toStdString(),false,w.type,lastFee);
+    notifyUi(ret);
+    return(ret);
 }
 
-bool BaseData::testWithdraw(double amount,QString currency,QString address,QString swift,QString note,bool fast)
+bool BaseData::withdraw(double amount,QString currency,QString address,QString swift,QString note,int type)
 {
-    if ((currency=="PLN")||(currency=="EUR")) return(currentExchange->withdraw(amount,currency.toStdString(),address.toStdString(),swift.toStdString(),note.toStdString(),true,fast,lastFee));
+    if (trylock())
+    {
+        WithdrawDetails w;
+        w.amount=amount;
+        w.currency=currency;
+        w.address=address;
+        w.swift=swift;
+        w.note=note;
+        w.type=type;
+        QtConcurrent::run(this,&BaseData::withdrawParallel,w);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::testWithdraw(double amount,QString currency,QString address,QString swift,QString note,int type)
+{
+    if ((currency=="PLN")||(currency=="EUR")) return(currentExchange->withdraw(amount,currency.toStdString(),address.toStdString(),swift.toStdString(),note.toStdString(),true,type,lastFee));
     else return(true);
 }
 
@@ -343,57 +453,177 @@ void BaseData::encryptKeys(QString pass)
     savekeys();
 }
 
-bool BaseData::marginList()
+bool BaseData::marginListParallel()
 {
     bool ret;
 
+    if (cmarket!="BTCPLN") changeMarketParallel("BTC/PLN",false);
     ret=currentExchange->marginList(cmarket);
+    notifyUi(ret);
+    return(ret);
+}
+
+void BaseData::emitOpenPositionsRefresh()
+{
     emit(model[OPENPOSITIONS]->layoutChanged());
+}
+
+bool BaseData::marginList()
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginListParallel);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::marginBalanceAddParallel(QString amount)
+{
+    bool ret;
+
+    ret=currentExchange->marginBalanceAdd(cmarket,amount.toDouble());
+    notifyUi(ret);
     return(ret);
 }
 
 bool BaseData::marginBalanceAdd(QString amount)
 {
-    return(currentExchange->marginBalanceAdd(cmarket,amount.toDouble()));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginBalanceAddParallel,amount);
+    }else return(false);
+    return(true);
 }
 
-bool BaseData::swapList(QString currency)
+bool BaseData:: swapListParallel(QString currency)
 {
     bool ret;
 
     ret=currentExchange->swapList(currency.toStdString());
+    notifyUi(ret);
+    return(ret);
+}
+
+void BaseData::emitOpenSwapsRefresh()
+{
     emit(model[OPENSWAPS]->layoutChanged());
+}
+
+bool BaseData::swapList(QString currency)
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::swapListParallel,currency);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData:: swapOpenParallel(QString currency,QString price,QString amount)
+{
+    bool ret;
+
+    ret=currentExchange->swapOpen(currency.toStdString(),coma(price),coma(amount));
+    notifyUi(ret);
     return(ret);
 }
 
 bool BaseData::swapOpen(QString currency,QString price,QString amount)
 {
-    return(currentExchange->swapOpen(currency.toStdString(),coma(price),coma(amount)));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::swapOpenParallel,currency,price,amount);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData:: swapCloseParallel(QString currency,QString id)
+{
+    bool ret;
+
+    ret=currentExchange->swapClose(currency.toStdString(),id.toStdString());
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::swapClose(QString currency,QString id)
 {
-    return(currentExchange->swapClose(currency.toStdString(),id.toStdString()));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::swapCloseParallel,currency,id);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::marginCloseParallel(QString id,double amount)
+{
+    bool ret;
+
+    ret=currentExchange->marginClose(cmarket,id.toStdString(),amount);
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::marginClose(QString id,double amount)
 {
-    return(currentExchange->marginClose(cmarket,id.toStdString(),amount));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginCloseParallel,id,amount);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::marginCancelParallel(QString id,double amount)
+{
+    bool ret;
+
+    ret=currentExchange->marginCancel(cmarket,id.toStdString(),amount);
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::marginCancel(QString id,double amount)
 {
-    return(currentExchange->marginCancel(cmarket,id.toStdString(),amount));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginCancelParallel,id,amount);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::marginModifyParallel(QString id,double rate,double takeprofit,double stoploss)
+{
+    bool ret;
+
+    ret=currentExchange->marginModify(cmarket,id.toStdString(),rate,takeprofit,stoploss);
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::marginModify(QString id,double rate,double takeprofit,double stoploss)
 {
-    return(currentExchange->marginModify(cmarket,id.toStdString(),rate,takeprofit,stoploss));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginModifyParallel,id,rate,takeprofit,stoploss);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::marginBalanceRemoveParallel(QString amount)
+{
+    bool ret;
+
+    ret=currentExchange->marginBalanceRemove(cmarket,amount.toDouble());
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::marginBalanceRemove(QString amount)
 {
-    return(currentExchange->marginBalanceRemove(cmarket,amount.toDouble()));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::marginBalanceRemoveParallel,amount);
+    }else return(false);
+    return(true);
 }
 
 QString BaseData::getLastError()
@@ -402,9 +632,29 @@ QString BaseData::getLastError()
     else return(QString(currentExchange->lasterror.c_str()));
 }
 
+bool BaseData::executeLeverageParallel(Position p)
+{
+    bool ret;
+
+    ret=currentExchange->marginOpen(cmarket,p.type,levs[p.leverage],p.amount,p.price,p.rateProfit,p.rateLoss);
+    notifyUi(ret);
+    return(ret);
+}
+
 bool BaseData::executeLeverage(QString price,QString amount,int type,int leverage,QString rateProfit,QString rateLoss)
 {
-    return(currentExchange->marginOpen(cmarket,type,levs[leverage],coma(amount),coma(price),coma(rateProfit),coma(rateLoss)));
+    if (trylock())
+    {
+        Position p;
+        p.price=coma(price);
+        p.amount=coma(amount);
+        p.type=type;
+        p.leverage=leverage;
+        p.rateProfit=coma(rateProfit);
+        p.rateLoss=coma(rateLoss);
+        QtConcurrent::run(this,&BaseData::executeLeverageParallel,p);
+    }else return(false);
+    return(true);
 }
 
 double BaseData::getLeverage(int leverage)
@@ -477,6 +727,15 @@ int BaseData::getHeight()
     return(height);
 }
 
+bool BaseData::getChartParallel(string cmarket,long sstart,long send,long timeframe)
+{
+    bool ret;
+
+    ret=currentExchange->marketChart(cmarket,sstart,send,timeframe);
+    notifyUi(ret);
+    return(ret);
+}
+
 void BaseData::prepareChartData()
 {
     double minzakres,maxzakres;
@@ -539,7 +798,10 @@ void BaseData::prepareChartData()
         swieczki.push_back(ohlc);
         if (swieczki.size()<ILESWIECZEKMAX)
         {
-            currentExchange->marketChart(cmarket,swieczki.front().t-ILESWIECZEKMAX*timeframe,ohlc.t,timeframe);
+            if (trylock())
+            {
+                QtConcurrent::run(this,&BaseData::getChartParallel,cmarket,swieczki.front().t-ILESWIECZEKMAX*timeframe,ohlc.t,timeframe);
+            }
         }
     }else
     {
@@ -588,22 +850,18 @@ void BaseData::rotate(int st)
 
 QString BaseData::curtostring(int cur)
 {
-    if (cur==BTC) return("BTC");
-    else if (cur==LTC) return("LTC");
-    else if (cur==KBM) return("KBM");
-    else if (cur==PLN) return("PLN");
-    else if (cur==EUR) return("EUR");
-    else return("");
+    return(curnames[cur]);
 }
 
 int BaseData::stringtocur(QString s)
 {
-    if (s=="BTC") return(BTC);
-    else if (s=="LTC") return(LTC);
-    else if (s=="KBM") return(KBM);
-    else if (s=="PLN") return(PLN);
-    else if (s=="EUR") return(EUR);
-    else return(0);
+    int i;
+
+    for(i=0;i<MAXCURR;i++)
+    {
+        if (s==curnames[i]) return(i);
+    }
+    return(0);
 }
 
 int BaseData::getCurrId(int t)
@@ -928,23 +1186,85 @@ double BaseData::coma(QString d)
     }
 }
 
+void BaseData::notifyUi(bool ret)
+{
+    unlock();
+    if (ret) QMetaObject::invokeMethod(window, "apiSuccess");
+    else QMetaObject::invokeMethod(window, "apiFailed");
+}
+
+void BaseData::executeParallel(QString price,QString amount,bool type)
+{
+    notifyUi(currentExchange->tradepair(coma(price),coma(amount),type,cmarket));
+}
+
 bool BaseData::execute(QString price,QString amount,bool type)
 {
-    return(currentExchange->tradepair(coma(price),coma(amount),type,cmarket));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::executeParallel,price,amount,type);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::transferParallel(QString toLogin,QString currency,double amount)
+{
+    bool ret;
+
+    ret=currentExchange->transfer(toLogin.toStdString(),currency.toStdString(),amount);
+    notifyUi(ret);
+    return(ret);
+}
+
+bool BaseData::transfer(QString toLogin,QString currency,double amount)
+{
+    log("transfer to "+toLogin+" "+QString::number(amount)+" "+currency);
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::transferParallel,toLogin,currency,amount);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::cancelOrderParallel(QString id)
+{
+    bool ret;
+
+    ret=currentExchange->cancelorder(id.toStdString());
+    notifyUi(ret);
+    return(ret);
 }
 
 bool BaseData::cancelOrder(QString id)
 {
-    return(currentExchange->cancelorder(id.toStdString()));
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::cancelOrderParallel,id);
+    }else return(false);
+    return(true);
 }
 
-bool BaseData::getOpenOrders()
+bool BaseData::getOpenOrdersParallel()
 {
     bool ret;
 
     ret=currentExchange->getopenorders(cmarket);
-    if (ret) emit(model[ORDERS]->layoutChanged());
+    notifyUi(ret);
     return(ret);
+}
+
+void BaseData::emitRefresh()
+{
+     emit(model[ORDERS]->layoutChanged());
+}
+
+bool BaseData::getOpenOrders()
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::getOpenOrdersParallel);
+    }else return(false);
+    return(true);
 }
 
 void BaseData::logError(QString s)
@@ -952,10 +1272,11 @@ void BaseData::logError(QString s)
     log(s);
 }
 
-bool BaseData::getFunds()
+bool BaseData::getFundsParallel(bool lock)
 {
     bool ret;
 
+    mutex_depth.lock();
     ret=currentExchange->getfunds();
     if (ret)
     {
@@ -963,26 +1284,60 @@ bool BaseData::getFunds()
         emit(model[BID]->dataChanged(model[BID]->index(0,0),model[BID]->index(model[BID]->rowCount()-1,0)));
         emit(model[ASK]->dataChanged(model[ASK]->index(0,0),model[ASK]->index(model[ASK]->rowCount()-1,0)));
     }
+    mutex_depth.unlock();
+    if (lock) notifyUi(ret);
     return(ret);
+}
+
+bool BaseData::getFunds()
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::getFundsParallel,true);
+    }else return(false);
+    return(true);
+}
+
+bool BaseData::getFundsNoLock()
+{
+    QtConcurrent::run(this,&BaseData::getFundsParallel,false);
+    return(true);
 }
 
 void BaseData::refreshCurrencies()
 {
     emit(model[DEPOSITCURRENCIES]->layoutChanged());
+    emit(model[WITHDRAWCURRENCIES]->layoutChanged());
+}
+
+void BaseData::loginParallel()
+{
+    bool ret;
+
+    if (!currentExchange->logged) {
+        if ((encrypted)&&(!checkPass())) {
+            currentExchange->lasterror=trans(63).toStdString();
+            ret=false;
+        }else
+        {
+            loadkeys();
+            ret=getFundsParallel(false);
+        }
+    }
+    else ret=true;
+    unlock();
+    if (ret) QMetaObject::invokeMethod(window, "loginSuccess");
+    else QMetaObject::invokeMethod(window, "loginFailed");
 }
 
 bool BaseData::login(QString pass)
 {
-    if (!currentExchange->logged) {
+    if (trylock())
+    {
         this->pass=pass.toStdString();
-        if ((encrypted)&&(!checkPass())) {
-            currentExchange->lasterror=trans(63).toStdString();
-            return(false);
-        }
-        loadkeys();
-        return(getFunds());
-    }
-    else return(true);
+        QtConcurrent::run(this,&BaseData::loginParallel);
+    }else return(false);
+    return(true);
 }
 
 bool BaseData::isLogged()
@@ -1202,6 +1557,7 @@ bool BaseData::getdepthparallel()
 
 void BaseData::getdepth()
 {
+    log("getdepth\n");
     QtConcurrent::run(this,&BaseData::getdepthparallel);
 }
 
@@ -1253,9 +1609,10 @@ void BaseData::getdepthimmediate()
     mutex_list.unlock();
     if (currentExchange->logged) getFunds();
     stopemit=false;
+    /*
     emit(model[BID]->layoutChanged());
     emit(model[ASK]->layoutChanged());
-    emit(model[BALANCE]->layoutChanged());
+    emit(model[BALANCE]->layoutChanged());*/
 }
 
 int BaseData::getExId()
@@ -1263,7 +1620,7 @@ int BaseData::getExId()
     return(currentExchange->id);
 }
 
-void BaseData::changeEx(QString s)
+void BaseData::changeExParallel(QString s,bool first)
 {
     vector<Exchange *>::iterator it;
 
@@ -1272,19 +1629,38 @@ void BaseData::changeEx(QString s)
         if (QString((*it)->name.c_str())==s)
         {
             currentExchange=*it;
-            emit(model[MARKETS]->layoutChanged());
-            emit(model[DEPOSITCURRENCIES]->layoutChanged());
-            emit(model[TIMEFRAMES]->layoutChanged());
+            //emit(model[MARKETS]->layoutChanged());
+            //emit(model[DEPOSITCURRENCIES]->layoutChanged());
+            //emit(model[TIMEFRAMES]->layoutChanged());
             cmarket=currentExchange->markets.front();
-            //getdepth();
             getdepthimmediate();
-            //qDebug()<<s<<"\n";
             break;
         }
     }
+    if (!first) notifyUi(true);
 }
 
-void BaseData::changeMarket(QString s)
+void BaseData::emitAllRefresh()
+{
+    emit(model[MARKETS]->layoutChanged());
+    emit(model[DEPOSITCURRENCIES]->layoutChanged());
+    emit(model[TIMEFRAMES]->layoutChanged());
+    emit(model[BID]->layoutChanged());
+    emit(model[ASK]->layoutChanged());
+    emit(model[BALANCE]->layoutChanged());
+}
+
+bool BaseData::changeEx(QString s)
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::changeExParallel,s,false);
+    }else return(false);
+    return(true);
+}
+
+
+void BaseData::changeMarketParallel(QString s,bool notify)
 {
     vector<string>::iterator it,it2;
     int i,j;
@@ -1307,6 +1683,16 @@ void BaseData::changeMarket(QString s)
         }
         i++;
     }
+    if (notify) notifyUi(true);
+}
+
+bool BaseData::changeMarket(QString s)
+{
+    if (trylock())
+    {
+        QtConcurrent::run(this,&BaseData::changeMarketParallel,s,true);
+    }else return(false);
+    return(true);
 }
 
 QString BaseData::getlangfile()
@@ -1344,7 +1730,7 @@ void BaseData::makeAlert(QString s)
     log("notify: "+s);
     QAndroidJniObject javas = QAndroidJniObject::fromString(trans(75));
     QAndroidJniObject javatxt = QAndroidJniObject::fromString(s);
-    QAndroidJniObject::callStaticMethod<void>("com/bitkom/NotificationClient","notify","(Ljava/lang/String;Ljava/lang/String;)V",javas.object<jstring>(),javatxt.object<jstring>());
+    QAndroidJniObject::callStaticMethod<void>("com/bitmarket/trader/NotificationClient","notify","(Ljava/lang/String;Ljava/lang/String;)V",javas.object<jstring>(),javatxt.object<jstring>());
 #else
     QVariant ret;
 
@@ -1355,14 +1741,14 @@ void BaseData::makeAlert(QString s)
 void BaseData::scanner()
 {
 #ifdef ANDROID
-    QAndroidJniObject::callStaticMethod<void>("com/bitkom/NotificationClient","scanner","()V");
+    QAndroidJniObject::callStaticMethod<void>("com/bitmarket/trader/NotificationClient","scanner","()V");
 #endif
 }
 
 QString BaseData::getscannedtxt()
 {
 #ifdef ANDROID
-    QAndroidJniObject result=QAndroidJniObject::callStaticObjectMethod<jstring>("com/bitkom/NotificationClient","getscannedtxt");
+    QAndroidJniObject result=QAndroidJniObject::callStaticObjectMethod<jstring>("com/bitmarket/trader/NotificationClient","getscannedtxt");
     log("scannertxt: "+result.toString()+"\n");
     return(result.toString());
 #endif
@@ -1377,3 +1763,30 @@ void BaseData::changeLocale()
 #endif
 }
 
+bool BaseData::trylock()
+{
+    if (!locked)
+    {
+        locked=true;
+        showLoading();
+        return(true);
+    }else return(false);
+}
+
+void BaseData::unlock()
+{
+    locked=false;
+    hideLoading();
+}
+
+void BaseData::showLoading()
+{
+    QMetaObject::invokeMethod(window, "showLoading");
+    log("lock\n");
+}
+
+void BaseData::hideLoading()
+{
+    QMetaObject::invokeMethod(window, "hideLoading");
+    log("free\n");
+}

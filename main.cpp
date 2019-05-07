@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QQmlApplicationEngine engine;
-    QString models[]={"modelbid","modelask","modelmarkets","modelexchanges","modelorders","modelbalance","modellast","modelmenu","modelleverage","modelpositions","modelswaps","modelorder","modelhistory","modelordertype","modeldepositcurrencies","modelwithdrawalaccounts","modeltimeframes"};
+    QString models[]={"modelbid","modelask","modelmarkets","modelexchanges","modelorders","modelbalance","modellast","modelmenu","modelleverage","modelpositions","modelswaps","modelorder","modelhistory","modelordertype","modeldepositcurrencies","modelwithdrawcurrencies","modelwithdrawalaccounts","modeltimeframes","modelcurrencies"};
 
 #ifndef IPHONE
     setlocale(LC_NUMERIC,"en_US.UTF-8");
@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
     base->msgObject = topLevel->findChild<QObject*>("messages");
     base->newDataObject = topLevel->findChild<QObject*>("newdata");
     base->window = qobject_cast<QQuickWindow *>(topLevel);
+    base->app=&app;
     if ( !base->window ) {
         qWarning("Error: Your root item has to be a Window.");
         return -1;

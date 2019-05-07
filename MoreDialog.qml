@@ -48,16 +48,16 @@ Item {
 
     Rectangle {
         x: Math.round(40*base.scalex())
-        y: Math.round(20*base.scalex())
+        y: Math.round(20*base.scaley())
         z: 1
         width: Math.round(1000*base.scalex())
-        height: Math.round(1710*base.scalex())
+        height: Math.round(1800*base.scaley())
         color: "#ffffff"
         Text{
             id: title
             x: Math.round(20*base.scalex())
             width: parent.width-Math.round(40*base.scalex())
-            height: Math.round(170*base.scalex())
+            height: Math.round(200*base.scaley())
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -66,7 +66,7 @@ Item {
             text: base.trans(121)
         }
         Rectangle {
-            y: Math.round(170*base.scalex())
+            y: Math.round(200*base.scaley())
             z: 1
             width: parent.width
             height: parent.height-y
@@ -76,7 +76,7 @@ Item {
                 x: Math.round(20*base.scalex())
                 //y: Math.round(100*base.scaley())
                 width: parent.width-Math.round(35*base.scalex())
-                height: parent.height-Math.round(200*base.scalex())
+                height: parent.height-Math.round(230*base.scaley())
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
                 wrapMode: Text.WordWrap
@@ -86,7 +86,7 @@ Item {
             }
             MButton {
                 x: Math.round(380*base.scalex())
-                y: Math.round(1320*base.scalex())
+                y: Math.round(1400*base.scaley())
                 height: Math.round(140*base.scaley())
                 text: "OK"
                 background: "#ffffff"

@@ -28,39 +28,60 @@ Frame {
     property double scroll
     property double flick
     property var currentpos
+    property bool get
+    property string apiFunction
 
     onAccepted: {
-        if (!base.executeLeverage(price.text,amount.text,buy.checked?0:1,leverage.view.currentIndex,rateProfit.text,rateLoss.text))
-        {
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        apiFunction="executeLeverage"
+        base.executeLeverage(price.text,amount.text,buy.checked?0:1,leverage.view.currentIndex,rateProfit.text,rateLoss.text)
     }
 
     onAccepted2: {
         if (close.checked)
         {
-            if(!base.marginClose(openPositions.lastTid,modifyAmount.text))
-            {
-                errorDialog.text=base.getLastError()
-                errorDialog.visible=true
-            }
+            apiFunction="marginClose"
+            base.marginClose(openPositions.lastTid,modifyAmount.text)
         }else if (cancel.checked)
         {
-            if (!base.marginCancel(openPositions.lastTid,modifyAmount.text))
-            {
-                errorDialog.text=base.getLastError()
-                errorDialog.visible=true
-            }
+            apiFunction="marginCancel"
+            base.marginCancel(openPositions.lastTid,modifyAmount.text)
         }else if (modify.checked)
         {
-            if (!base.marginModify(openPositions.lastTid,modifyPrice.text,modifyRateProfit.text,modifyRateLoss.text))
-            {
-                errorDialog.text=base.getLastError()
-                errorDialog.visible=true
-            }
+            apiFunction="marginModify"
+            base.marginModify(openPositions.lastTid,modifyPrice.text,modifyRateProfit.text,modifyRateLoss.text)
+        }
+    }
+
+    function apiSuccess()
+    {
+        if (apiFunction=="marginList") {
+
+            base.emitOpenPositionsRefresh()
+            markets.popup.view.currentIndex=0
+            markets.popup.ref()
+        }
+        else if ((apiFunction=="executeLeverage")||(apiFunction=="marginClose")||(apiFunction=="marginCancel")||(apiFunction=="marginModify"))
+        {
+            switchNewPosition()
+            get=true
+        }
+        else if ((apiFunction=="marginBalanceRemove")||(apiFunction=="marginBalanceAdd"))
+        {
+            apiFunction="getFunds"
+            base.getFunds()
+        }
+        else if (apiFunction=="getFunds")
+        {
+            get=true
         }
         update()
+    }
+
+    function apiFailed()
+    {
+        if (apiFunction=="marginList") get=true
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
     }
 
     function updateValues()
@@ -78,7 +99,7 @@ Frame {
     {
         if ((!isNaN(price.text))&&(!isNaN(amount.text)))
         {
-            if (amount.text>(base.getAvLeverage()*price.text*base.getLeverage(leverage.view.currentIndex))) amount.text=(base.getAvLeverage()*price.text*base.getLeverage(leverage.view.currentIndex)).toFixed(2);
+            if (amount.text>(base.getAvLeverage()*price.text*base.getLeverage(leverage.view.currentIndex))) amount.text=parseFloat(base.getAvLeverage()*price.text*base.getLeverage(leverage.view.currentIndex)).toFixed(2);
         }
     }
 
@@ -100,6 +121,14 @@ Frame {
         marketinfo.maxprice.infodown.text=base.getMarketInfo(3)
         marketinfo.minprice.infodown.text=base.getMarketInfo(4)
         marketinfo.volume.infodown.text=base.getMarketInfo(5)
+    }
+
+    function switchNewPosition()
+    {
+        leverageModify.visible=false
+        leverageExecute.visible=true
+        openPositions.currentRow=-1
+        openPositions.selection.clear()
     }
 
     onClear: {
@@ -127,16 +156,21 @@ Frame {
     onUpdate: {
         scroll=openPositions.__verticalScrollBar.value
         flick=openPositions.flickableItem.verticalVelocity
-        base.marginList()
+        if ((get)&&(base.isLogged())) {
+            get=false
+            apiFunction="marginList"
+            base.marginList()
+        }
         openPositions.__verticalScrollBar.value=scroll
         openPositions.flickableItem.cancelFlick()
         if (flick!=0) openPositions.flickableItem.flick(0,-flick)
-        updateValues()
+        //updateValues()
         refresh()
     }
 
     Component.onCompleted: {
-        refresh()
+        get=true
+        update()
     }
 
     function modifyHide()
@@ -197,18 +231,19 @@ Frame {
         }
     }
 
-    function makeLogin()
+    function loginSuccess()
     {
-        if (base.login(pass)) {
-            loginField.visible=false
-            leverageFrame.visible=true
-            refresh()
-        }else {
-            refresh()
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        loginField.visible=false
+        leverageFrame.visible=true
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        refresh()
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
     }
 
     Login {
@@ -317,12 +352,9 @@ Frame {
                 text: base.trans(53)
                 width : Math.round(300*base.scalex())
                 onClicked: {
-                    if (marginFunds.text>modelbalance.get(2)['value']) marginFunds.text=modelbalance.get(2)['value'].toFixed(8);
-                    if (!base.marginBalanceAdd(marginFunds.text))
-                    {
-                        errorDialog.text=base.getLastError()
-                        errorDialog.visible=true
-                    }
+                    if (marginFunds.text>modelbalance.get(2)['value']) marginFunds.text=parseFloat(modelbalance.get(2)['value']).toFixed(8);
+                    apiFunction="marginBalanceAdd"
+                    base.marginBalanceAdd(marginFunds.text)
                     refresh()
                 }
             }
@@ -333,12 +365,9 @@ Frame {
                 width : Math.round(300*base.scalex())
                 text: base.trans(54)
                 onClicked: {
-                    if (marginFunds.text>base.getLeverageData(0)) marginFunds.text=base.getLeverageData(0).toFixed(8);
-                    if (!base.marginBalanceRemove(marginFunds.text))
-                    {
-                        errorDialog.text=base.getLastError()
-                        errorDialog.visible=true
-                    }
+                    if (marginFunds.text>base.getLeverageData(0)) marginFunds.text=base.getLeverageData(0);
+                    apiFunction="marginBalanceRemove"
+                    base.marginBalanceRemove(marginFunds.text)
                     refresh()
                 }
             }
@@ -713,10 +742,7 @@ Frame {
                 width: Math.round(524*base.scalex())
                 text: base.trans(49)
                 onClicked: {
-                    leverageModify.visible=false
-                    leverageExecute.visible=true
-                    openPositions.currentRow=-1
-                    openPositions.selection.clear()
+                    switchNewPosition()
                 }
             }
         }
@@ -727,7 +753,6 @@ Frame {
             property string fiatTotal
 
             id: openPositions
-            headerVisible: false
             TableViewColumn {role: "opened"; width: base.getWidth()-2 }
             model: modelpositions
             x: 0
@@ -735,6 +760,7 @@ Frame {
             z: -1
             width: base.getWidth()
             height: Math.round(750*base.scaley())
+            headerVisible: true
             style: TableViewStyle {
                 frame: Rectangle {
                     border{
@@ -742,7 +768,7 @@ Frame {
                     }
                 }
             }
-            contentHeader: Rectangle {
+            headerDelegate: Rectangle {
                 width: base.getWidth()
                 height: Math.round(75*base.scaley())
                 color: "#f5f4f2"

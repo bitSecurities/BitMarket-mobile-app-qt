@@ -119,8 +119,10 @@ Item{
 
     MText {
         id: password
-        x: Math.round(0*base.scalex())
-        y: Math.round(100*base.scaley())
+        //x: Math.round(0*base.scalex())
+        //y: Math.round(100*base.scaley())
+        x: Math.round(360*base.scalex())
+        y: Math.round(1480*base.scaley())
         width: Math.round(360*base.scalex())
         horizontalAlignment: Text.AlignLeft
         text: base.trans(58)

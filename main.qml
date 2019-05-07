@@ -37,11 +37,68 @@ ApplicationWindow {
     property string pass
     property string addr
     property int idx
+    property string apiFunction
 
     function showError()
     {
         errorDialog.text=base.getLastError()
         errorDialog.visible=true
+    }
+
+    function showLoading()
+    {
+        loading.show()
+        refresh()
+    }
+
+    function hideLoading()
+    {
+        loading.hide()
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        if (pageLoader!=null) pageLoader.item.loginFailed()
+    }
+
+    function loginSuccess()
+    {
+        if (pageLoader!=null) pageLoader.item.loginSuccess()
+    }
+
+    function apiFailed()
+    {
+        if (pageLoader!=null) pageLoader.item.apiFailed()
+    }
+
+    function apiSuccess()
+    {
+        if (apiFunction=="changeMarket")
+        {
+            apiFunction=""
+            base.emitAllRefresh()
+            if (pageLoader.item!=null) {
+                pageLoader.item.refresh()
+                pageLoader.item.clear()
+            }
+        }
+        else if (apiFunction=="changeEx")
+        {
+            apiFunction=""
+            base.emitAllRefresh()
+            markets.popup.view.currentIndex=0
+            markets.popup.ref()
+            if (pageLoader.item!=null) {
+                pageLoader.item.clear()
+                pageLoader.item.refresh()
+            }
+        }
+        else if (pageLoader!=null) pageLoader.item.apiSuccess()
+    }
+
+    function makeLogin() {
+        base.login(pass)
     }
 
     function masked(object,txt)
@@ -160,7 +217,7 @@ ApplicationWindow {
             pageLoader.source="qrc:///Settings.qml"
             break
         case 11:
-            Qt.quit()
+            base.close()
             break
         }
         menuWindow.visible=false
@@ -180,9 +237,20 @@ ApplicationWindow {
         id: view
         anchors.fill: parent
 
+        Loading {
+            id: loading
+        }
+
         MDialog {
             id: errorDialog
             title: base.trans(114)
+            text: ""
+            type: "moreinfo"
+        }
+
+        MDialog {
+            id: successDialog
+            title: base.trans(135)
             text: ""
             type: "ok"
         }
@@ -294,6 +362,8 @@ ApplicationWindow {
                 visible: !base.isLogged()
                 x: Math.round(110*base.scalex())
                 y: Math.round(25*base.scaley())
+                password.x: Math.round(0*base.scalex())
+                password.y: Math.round(100*base.scaley())
                 z: 15
                 button.width: Math.round(260*base.scalex())
                 outer: true
@@ -396,16 +466,18 @@ ApplicationWindow {
         Component.onCompleted: {
             idx=-1
             addr=""
-            base.changeEx("Bitmarket")
-//            base.changeEx("Bitmaszyna")
-//            ex.name="Bitmaszyna"
+            base.changeExParallel("Bitmarket",true)
+            base.emitAllRefresh()
             base.checkAlerts()
-            if (pageLoader.item!=null) {
-                pageLoader.item.clear()
-                pageLoader.item.refresh()
-            }
             loadUpdate.start()
             changeScreen(0)
+            pageLoader.item.update()
+            /*base.emitAllRefresh()
+            if (pageLoader.item!=null) {
+                pageLoader.item.refresh()
+                pageLoader.item.clear()
+                pageLoader.item.newdata()
+            }*/
         }
 
         MultiPointTouchArea {
@@ -484,7 +556,7 @@ ApplicationWindow {
                         if (pageLoader.item!=null) pageLoader.item.newdata()
                     }
                 }
-/*
+                /*
                 Timer {
                     id: loadInitial
                     running: false
@@ -509,8 +581,8 @@ ApplicationWindow {
                     interval: 5000
                     onTriggered: {
                         base.checkAlerts()
-                        update()
                         pageLoader.item.update()
+                        update()
                     }
                 }
 
@@ -529,13 +601,8 @@ ApplicationWindow {
                     onNameChanged: {
                         if (!first)
                         {
+                            apiFunction="changeEx"
                             base.changeEx(name)
-                            markets.popup.view.currentIndex=0
-                            markets.popup.ref()
-                            if (pageLoader.item!=null) {
-                                pageLoader.item.clear()
-                                pageLoader.item.refresh()
-                            }
                         }else {
                             //loadInitial.start()
                             first=false
@@ -557,11 +624,8 @@ ApplicationWindow {
                     onNameChanged: {
                         if (!first)
                         {
+                            apiFunction="changeMarket"
                             base.changeMarket(name)
-                            if (pageLoader.item!=null) {
-                                pageLoader.item.refresh()
-                                pageLoader.item.clear()
-                            }
                         }else first=false
                     }
                 }

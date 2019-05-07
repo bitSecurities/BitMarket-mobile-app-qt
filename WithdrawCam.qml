@@ -28,50 +28,42 @@ import QZXing 2.3
 Frame {
 
     onAccepted: {
-        var note
+        var note,method
         console.log("Accepted")
         if (withdrawNote.text!==base.trans(79)) note=withdrawNote.text;
         else note="";
-        if (!base.withdraw(withdrawAmount.text,currency.name,withdrawAddress.text,withdrawSwift.text,note,isfast.checked))
-        {
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
+        if (currency.name===base.trans(138)) method=2 //ATM withdrawal
+        else if (isfast.checked) method=1; //fast withdrawal
+        else method=0; //normal withdrawal
+        base.withdraw(withdrawAmount.text,currency.name,withdrawAddress.text,withdrawSwift.text,note,method)
     }
 
-    function makeLogin() {
-        if (base.login(pass)) {
-            loginField.visible=false
-            withdrawFrame.visible=true
-            base.refreshCurrencies()
-            currency.popup.ref()
-            refresh()
-        }else {
-            refresh()
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-        }
-    }
-
-    function parseKrypto(tag)
+    function loginSuccess()
     {
-        var i,j
+        loginField.visible=false
+        withdrawFrame.visible=true
+        base.refreshCurrencies()
+        currency.popup.ref()
+        refresh()
+    }
 
-        i=tag.search("bitcoin:")
-        if ((i>=0)&&(currency.name==="BTC")) {
-            j=tag.search("\\?")
-            if (j<0) j=tag.length
-            withdrawAddress.text=tag.substring(i+8,j)
-            closeScanner()
-        }
-        i=tag.search("litecoin:")
-        if ((i>=0)&&(currency.name==="LTC")) {
-            j=tag.search("\\?")
-            if (j<0) j=tag.length
-            withdrawAddress.text=tag.substring(i+8,j)
-            closeScanner()
-        }
+    function loginFailed()
+    {
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
+    }
+
+    function apiSuccess()
+    {
+
+    }
+
+    function apiFailed()
+    {
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
     }
 
     function checkmax()
@@ -120,9 +112,11 @@ Frame {
 
         MListButton {
             id: currency
-            x: Math.round(420*base.scalex())
+            x: Math.round(300*base.scalex())
             y: Math.round(100*base.scaley())
             z: 11
+            width: 500*base.scalex()
+            popup.itemWidth: 500*base.scalex()
             model: modeldepositcurrencies
             view.currentIndex: {
                 if (idx==-1)
@@ -138,35 +132,22 @@ Frame {
             inner.border.width: 0
             inner.radius: 0
             onNameChanged: {
-                if (name==="EUR") withdrawSwift.visible=true
-                else withdrawSwift.visible=false
-                if (name==="PLN") {
-                    if (ex.name==="Bitmarket") withdrawNote.visible=true
-                    isfast.visible=true
-                }
-                else {
-                    withdrawNote.visible=false
-                    isfast.visible=false
-                }
-                if ((name==="EUR")||(name==="PLN"))
-                {
-                    if (addr!="") withdrawAddress.text=addr
-                    else withdrawAddress.text=base.trans(106)
-                    withdrawAddress.mtext=base.trans(106)
-                    actionExternal.visible=false
-                }else
-                {
-                    if (addr!="") withdrawAddress.text=addr
-                    else withdrawAddress.text=base.trans(67)
-                    withdrawAddress.mtext=base.trans(67)
-                    if (ex.name==="Bitmarket") actionExternal.visible=true
-                }
-                base.setWithdrawalCurrencyName(name)
-                chooseaccount.popup.view.currentIndex=0
-                chooseaccount.popup.ref()
-                if (ex.name==="Bitmaszyna") withdrawAddress.text=base.getWithdrawalAccount(chooseaccount.view.currentIndex)
-                withdrawAmount.text=base.trans(14)
-                withdrawAddress.text=base.trans(67);
+                closeScanner()
+            }
+        }
+
+        MListButton {
+            id: currencyInternal
+            x: Math.round(420*base.scalex())
+            y: Math.round(200*base.scaley())
+            z: 10
+            model: modelbalance
+            visible: false
+            inner.border.width: 0
+            inner.radius: 0
+            onNameChanged:
+            {
+                withdrawBalance.text=makeBalance();
             }
         }
 
@@ -349,7 +330,7 @@ Frame {
                     {
                         if (currency.name==="PLN") withdrawalConfirmation.text=base.trans(76)+" "+withdrawAmount.text+" "+currency.name+" "+base.trans(77)+" "+withdrawAddress.text+" "+base.trans(81)+" "+base.getLastFee()+" "+currency.name+"?";
                         else if (currency.name==="EUR") withdrawalConfirmation.text=base.trans(76)+" "+withdrawAmount.text+" "+currency.name+" "+base.trans(77)+" "+withdrawAddress.text+" "+base.trans(82)+" "+withdrawSwift.text+" "+base.trans(81)+" "+base.getLastFee()+" "+currency.name+"?";
-                        else if ((currency.name==="BTC")||(currency.name==="LTC")) withdrawalConfirmation.text=base.trans(76)+" "+withdrawAmount.text+" "+currency.name+" "+base.trans(83)+" "+withdrawAddress.text+"?";
+                        else withdrawalConfirmation.text=base.trans(76)+" "+withdrawAmount.text+" "+currency.name+" "+base.trans(83)+" "+withdrawAddress.text+"?";
                         withdrawalConfirmation.visible=true
                     }
                 }

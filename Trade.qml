@@ -34,6 +34,7 @@ Frame {
     property bool side
     property bool reverse
     property int row
+    property string apiFunction
 
     onClear: {
         reverse=base.getReverse();
@@ -90,7 +91,9 @@ Frame {
     }
 
     onAccepted:{
-        if (!base.execute(price.text,amount.text,!buy.checked))
+        apiFunction="trade";
+        base.execute(price.text,amount.text,!buy.checked)
+        /*if (!base.execute(price.text,amount.text,!buy.checked))
         {
             errorDialog.text=base.getLastError()
             errorDialog.visible=true
@@ -99,7 +102,7 @@ Frame {
             base.getFunds()
             base.getdepth()
         }
-        refresh()
+        refresh()*/
     }
 
     /*MDialog {
@@ -122,22 +125,48 @@ Frame {
         //visible: false
     }*/
 
-    function makeLogin() {
+    function apiFailed()
+    {
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
+    }
+
+    function apiSuccess()
+    {
+        if (apiFunction=="trade")
+        {
+            apiFunction="funds"
+            base.getFunds()
+            base.getdepth()
+        }
+        else refresh()
+    }
+
+    function scrollReset()
+    {
         bidScroll=bidtable.__verticalScrollBar.value
         askScroll=asktable.__verticalScrollBar.value
-        if (base.login(pass)) {
-            loginfield2.visible=false
-            account.fees.text=base.getFees()
-            account.visible=true
-            bidtable.__verticalScrollBar.value=bidScroll
-            asktable.__verticalScrollBar.value=askScroll
-            refresh()
-        }else {
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-            refresh()
-        }
+    }
+
+    function loginSuccess()
+    {
+        scrollReset()
+        loginfield2.visible=false
+        account.fees.text=base.getFees()
+        account.visible=true
+        bidtable.__verticalScrollBar.value=bidScroll
+        asktable.__verticalScrollBar.value=askScroll
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        scrollReset()
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
     }
 
     Component.onCompleted: clear()
@@ -170,7 +199,7 @@ Frame {
             {
                 if ((order.price.text>0)&&(order.amount.text*order.price.text>modelbalance.get(base.getCurrId(2))['value']-0.01)&&(modelbalance.get(base.getCurrId(2))['value']-0.01>0))
                 {
-                    order.amount.text=((modelbalance.get(base.getCurrId(2))['value']-0.01)/order.price.text).toFixed(8)
+                    order.amount.text=parseFloat((modelbalance.get(base.getCurrId(2))['value']-0.01)/order.price.text).toFixed(8)
                 }
             }else if (!side)
             {
@@ -380,6 +409,8 @@ Frame {
             id: loginfield2
             x: Math.round(370*base.scalex())
             y: Math.round(1500*base.scaley())
+            password.x: Math.round(0*base.scalex())
+            password.y: Math.round(100*base.scaley())
             button.onClicked: {
                 pass=loginfield2.text
                 login()

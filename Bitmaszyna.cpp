@@ -27,6 +27,7 @@ extern void log(string s);
 extern BaseData *base;
 
 #define BITMASZYNAURL "https://bitmaszyna.pl/api/"
+//#define BITMASZYNAURL "https://192.168.1.100:10443/api/"
 
 #ifdef IPHONE
 void BN_zero_ex(BIGNUM *)
@@ -66,6 +67,14 @@ Bitmaszyna::Bitmaszyna() {
     currencies.push_back(c);
     c.name="LTC";
     c.type=LTC;
+    c.deposit=true;
+    currencies.push_back(c);
+    c.name="DOGE";
+    c.type=DOGE;
+    c.deposit=true;
+    currencies.push_back(c);
+    c.name="LSK";
+    c.type=LSK;
     c.deposit=true;
     currencies.push_back(c);
     c.name="KBM";
@@ -154,7 +163,10 @@ bool Bitmaszyna::makeApiCall(string method,struct json_object **json,string post
 
 void Bitmaszyna::getError(struct json_object **json)
 {
-    lasterror=json_object_get_string(*json);
+    string err;
+
+    err=json_object_get_string(*json);
+    if (err!="") lasterror=err;
     logerror();
     json_object_put(*json);
 }
@@ -162,7 +174,7 @@ void Bitmaszyna::getError(struct json_object **json)
 bool Bitmaszyna::fetchData(struct json_object **json,struct json_object **jtmp)
 {
     json_object_object_get_ex(*json,"result",jtmp);
-    if (string(json_object_get_string(*jtmp))!=string("ok")) {
+    if ((*jtmp!=NULL)&&(string(json_object_get_string(*jtmp))!=string("ok"))) {
         json_object_object_get_ex(*json,"reason",jtmp);
         getError(jtmp);
         curl_mutex.unlock();
@@ -295,6 +307,25 @@ bool Bitmaszyna::history(string currency)
     return(true);
 }
 
+bool Bitmaszyna::transfers(int count,int start)
+{
+    Q_UNUSED(count);
+    Q_UNUSED(start);
+    return(true);
+}
+
+bool Bitmaszyna::withdrawals(int count,int start)
+{
+    Q_UNUSED(count);
+    Q_UNUSED(start);
+    return(true);
+}
+
+bool Bitmaszyna::transfer(string,string,double)
+{
+    return(true);
+}
+
 bool Bitmaszyna::marginOpen(string market,char type,double leverage,double amount,double rate,double rateLoss,double rateProfit)
 {
     Q_UNUSED(market);
@@ -360,7 +391,7 @@ bool Bitmaszyna::getticker(string market,Ticker& t)
     return(false);
 }
 
-bool Bitmaszyna::withdraw(double amount,const string& currency,const string& address,const string& swift,const string& note,bool test,bool fast,double& fee)
+bool Bitmaszyna::withdraw(double amount,const string& currency,const string& address,const string& swift,const string& note,bool test,int type,double& fee)
 {
     Q_UNUSED(swift);
     Q_UNUSED(note);
@@ -369,7 +400,7 @@ bool Bitmaszyna::withdraw(double amount,const string& currency,const string& add
     string ex;
 
     if (test) return(true);
-    if (fast) ex="true";
+    if (type==WITHDRAW_FAST) ex="true";
     else ex="false";
     return(makeSimpleApiCall("withdrawal",string("nonce=")+to_stringl(getctime()).toStdString()+"&account="+address+"&amount="+to_stringd(amount).toStdString()+"&cur="+currency+"&express="+ex));
 }
@@ -510,21 +541,21 @@ bool Bitmaszyna::getfunds()
         if (!fetchData(&json,&jtmp)) return(false);
         log(string(chunk.memory)+"\n");
         json_object_object_get_ex(json,"funds",&jtmp);
-        json_object_object_get_ex(jtmp,"available_btc",&jtmp2);
+        json_object_object_get_ex(jtmp,"available_BTC",&jtmp2);
         balance.balance[BTC]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"blocked_btc",&jtmp2);
+        json_object_object_get_ex(jtmp,"blocked_BTC",&jtmp2);
         balance.blocked[BTC]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"available_ltc",&jtmp2);
+        json_object_object_get_ex(jtmp,"available_LTC",&jtmp2);
         balance.balance[LTC]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"blocked_ltc",&jtmp2);
+        json_object_object_get_ex(jtmp,"blocked_LTC",&jtmp2);
         balance.blocked[LTC]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"available_kbm",&jtmp2);
+        json_object_object_get_ex(jtmp,"available_KBM",&jtmp2);
         balance.balance[KBM]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"blocked_kbm",&jtmp2);
+        json_object_object_get_ex(jtmp,"blocked_KBM",&jtmp2);
         balance.blocked[KBM]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"available_pln",&jtmp2);
+        json_object_object_get_ex(jtmp,"available_PLN",&jtmp2);
         balance.balance[PLN]=json_object_get_double(jtmp2);
-        json_object_object_get_ex(jtmp,"blocked_pln",&jtmp2);
+        json_object_object_get_ex(jtmp,"blocked_PLN",&jtmp2);
         balance.blocked[PLN]=json_object_get_double(jtmp2);
         json_object_object_get_ex(jtmp,"takerfee",&jtmp2);
         fees.taker=json_object_get_double(jtmp2);

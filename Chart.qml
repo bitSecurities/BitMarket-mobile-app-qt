@@ -37,6 +37,16 @@ Frame {
         }
     }
 */
+    function apiSuccess()
+    {
+        refresh()
+    }
+
+    function apiFailed()
+    {
+        refresh()
+    }
+
     onClear: {
         timeframe.view.currentIndex=0
         timeframe.view.currentIndex=1

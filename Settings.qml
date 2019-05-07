@@ -25,16 +25,18 @@ import QtQuick.Dialogs 1.1
 Frame {
     property bool loaded:false
 
-    function makeLogin() {
-        if (base.login(pass)) {
-            encryptPassword.visible=base.isLogged()
-            refresh()
-        }else {
-            errorDialog.title=base.trans(18)
-            errorDialog.text=base.getLastError()
-            errorDialog.visible=true
-            refresh()
-        }
+    function loginSuccess()
+    {
+        encryptPassword.visible=base.isLogged()
+        refresh()
+    }
+
+    function loginFailed()
+    {
+        errorDialog.title=base.trans(18)
+        errorDialog.text=base.getLastError()
+        errorDialog.visible=true
+        refresh()
     }
 
     ListModel {
@@ -94,6 +96,12 @@ Frame {
                 order.text=base.trans(85+order.view.currentIndex)
                 moreInfo.text=base.trans(122)
                 errorDialog.moreinfo=base.trans(121)
+                errorDialog.title=base.trans(114)
+                cryptButton.text=base.trans(60)
+                password.text=base.trans(58)
+                password.mtext=base.trans(58)
+                confirmPassword.text=base.trans(59)
+                confirmPassword.mtext=base.trans(59)
             }
         }
     }
@@ -140,8 +148,9 @@ Frame {
             width: Math.round(400*base.scalex())
             height: Math.round(125*base.scaley())
             text: base.trans(58)
+            mtext: base.trans(58)
             font.pixelSize: Math.round(35*base.scalex())
-            onFocusChanged: maskedPassword(this,base.trans(58))
+            onFocusChanged: maskedPassword(this,mtext)
         }
 
         MText {
@@ -151,11 +160,13 @@ Frame {
             width: Math.round(400*base.scalex())
             height: Math.round(125*base.scaley())
             text: base.trans(59)
+            mtext: base.trans(59)
             font.pixelSize: Math.round(35*base.scalex())
-            onFocusChanged: maskedPassword(this,base.trans(59))
+            onFocusChanged: maskedPassword(this,mtext)
         }
 
         MButton {
+            id: cryptButton
             x:Math.round(340*base.scalex())
             y:Math.round(300*base.scaley())
             width: Math.round(400*base.scalex())
